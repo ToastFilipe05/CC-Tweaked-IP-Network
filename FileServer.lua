@@ -1,6 +1,6 @@
--- fileServer.lua Version 1.1
+-- fileServer.lua Version 1.2
 -- CC:Tweaked server for file sharing with password protection
--- Uses HELLO_REPLY only, auto IP and password files
+-- Uses HELLO_REPLY only, auto IP and password files, and restricts transfers to /files/
 
 local modemSide = "back"
 local modem = peripheral.wrap(modemSide)
@@ -12,6 +12,7 @@ modem.open(1)
 local CHUNK_SIZE = 512
 local IP_FILE = "ip.txt"
 local PASSWORD_FILE = "server_password.txt"
+local FILE_DIR = "/files/"
 
 -- ==========================
 -- STATE
@@ -114,18 +115,22 @@ end
 -- FILE TRANSFER FUNCTIONS
 -- ==========================
 local function sendFile(dst, filename)
-    if not fs.exists(filename) then
-        print("File does not exist: "..filename)
+    local fullPath = FILE_DIR..filename
+    if not fs.exists(fullPath) then
+        print("File does not exist in "..FILE_DIR..": "..filename)
         return
     end
-    local f = fs.open(filename,"r")
+
+    local f = fs.open(fullPath,"r")
     local data = f.readAll()
     f.close()
-    local chunks={}
+
+    local chunks = {}
     for i=1,#data,CHUNK_SIZE do
         local chunk = data:sub(i, math.min(i+CHUNK_SIZE-1,#data))
         table.insert(chunks,chunk)
     end
+
     print("Sending file "..filename.." to "..dst.." in "..#chunks.." chunks")
     for i,chunk in ipairs(chunks) do
         sendPacket(dst,{ type="FILE_CHUNK", filename=filename, seq=i, total=#chunks, data=chunk })
@@ -177,9 +182,9 @@ local function cliLoop()
         io.write("> ")
         local line = io.read()
         if not line then break end
-        local args={}
+        local args = {}
         for word in line:gmatch("%S+") do table.insert(args,word) end
-        local cmd=args[1]
+        local cmd = args[1]
         if cmd=="exit" then return
         elseif cmd=="set" and args[2]=="ip" and args[3] then
             myIP=args[3]; saveIP(); print("IP set to "..myIP)
@@ -198,4 +203,6 @@ end
 -- ==========================
 -- START SERVER
 -- ==========================
+-- Ensure /files/ exists
+if not fs.exists(FILE_DIR) then fs.makeDir(FILE_DIR) end
 parallel.waitForAny(receiveLoop, cliLoop)
