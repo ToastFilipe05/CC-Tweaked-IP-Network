@@ -1,5 +1,6 @@
--- Router.lua version 1.1
--- Wired IP router with active host discovery, persistent routing table, and standardized IP file
+-- router.lua Version 1.2
+-- Wired IP router with active host discovery, persistent routing table, standardized IP file
+-- HELLO_REQUEST/HELLO_REPLY system, auto-save routing table, 60-second intervals
 
 -- ==========================
 -- CONFIGURATION
@@ -122,7 +123,7 @@ local function forwardPacket(packet, incomingSide)
             saveRoutingTable()
             return
 
-        -- HELLO_REQUEST (reply to other routers)
+        -- HELLO_REQUEST (reply to other routers or clients/servers)
         elseif payload.type=="HELLO_REQUEST" then
             local reply = { uid=makeUID(), src=routerIP, dst=packet.src, ttl=DEFAULT_TTL, payload={ type="HELLO_REPLY" } }
             interfaces[incomingSide].transmit(1,1,reply)
@@ -169,9 +170,11 @@ end
 -- ==========================
 local function periodicHelloCheck()
     while true do
+        -- Send HELLO_REQUEST to all interfaces
         local packet = { uid=makeUID(), src=routerIP, dst="0", ttl=DEFAULT_TTL, payload={ type="HELLO_REQUEST" } }
         for side, modem in pairs(interfaces) do modem.transmit(1,1,packet) end
 
+        -- Remove hosts that timed out
         local now = os.clock()
         for host, t in pairs(lastSeen) do
             if now - t > HELLO_INTERVAL then
