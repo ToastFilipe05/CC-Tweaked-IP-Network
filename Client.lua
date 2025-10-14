@@ -1,6 +1,6 @@
--- client.lua Version 1.1
+-- client.lua Version 1.2
 -- CC:Tweaked wired client for IP router & server systems
--- Supports hostname keywords, HELLO_REPLY only, and secure plaintext file transfer
+-- Supports hostname keywords, HELLO_REPLY only, secure plaintext file transfer, and standardized IP file
 
 local modemSide = "back"
 local modem = peripheral.wrap(modemSide)
@@ -32,7 +32,7 @@ local function saveIP()
 end
 
 -- ==========================
--- LOAD HOSTS
+-- HOSTS MANAGEMENT
 -- ==========================
 local hosts = {}
 if fs.exists("hosts.txt") then
@@ -76,7 +76,7 @@ local function sendPacket(dst, payload)
 end
 
 -- ==========================
--- HELLO_REPLY (triggered by router request)
+-- HELLO_REPLY (triggered by router)
 -- ==========================
 local function replyHello(requester)
     if not myIP then return end
@@ -85,7 +85,7 @@ local function replyHello(requester)
 end
 
 -- ==========================
--- FILE TRANSFER SUPPORT
+-- FILE TRANSFER
 -- ==========================
 local receivingFile = false
 local fileBuffer = {}
@@ -181,9 +181,7 @@ local function cliLoop()
         local cmd = args[1]
         if cmd=="exit" then return
         elseif cmd=="set" and args[2]=="ip" and args[3] then
-            myIP=args[3]
-            saveIP()
-            print("IP set to "..myIP)
+            myIP=args[3]; saveIP(); print("IP set to "..myIP)
         elseif cmd=="ping" and args[2] then
             sendPacket(args[2], { type="PING" }); print("Ping sent to "..args[2])
         elseif cmd=="list" and args[2]=="hosts" then
