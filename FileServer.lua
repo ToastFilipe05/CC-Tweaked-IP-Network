@@ -1,4 +1,4 @@
--- server.lua
+-- fileServer.lua
 -- CC:Tweaked server for file sharing with password protection
 -- Features:
 --   - Automatic IP from server_ip.txt
