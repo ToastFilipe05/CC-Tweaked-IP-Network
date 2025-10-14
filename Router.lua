@@ -188,7 +188,7 @@ local function cli()
         io.write("(router)> ")
         local line = read()
         if not line then break end
-        local cmd,arg1,arg2 = line:match("^(%S+)%s*(%S*)%s*(%S*)$")
+        local cmd,arg1,arg2,arg3 = line:match("^(%S+)%s*(%S*)%s*(%S*)%s*(%S*)$")
 
         if cmd=="help" then printHelp()
         elseif cmd=="exit" then return
@@ -202,11 +202,14 @@ local function cli()
             routerIP = arg2
             print("Router IP changed from "..oldIP.." to "..routerIP)
             pingRouters(oldIP)
-        elseif cmd=="add" and arg1=="route" and arg2~="" then
-            local subnet, side = arg2:match("([^%s]+)%s+([^%s]+)")
-            if not subnet or not side or not interfaces[side] then
-                print("Usage: add route <subnet> <side>")
-            else routingTable[subnet] = side; print("Added route "..subnet.." -> "..side) end
+        elseif cmd=="add" and arg1=="route" and arg2~="" and arg3~="" then
+            local subnet, side = arg2, arg3
+            if not interfaces[side] then
+                print("Invalid side: "..side)
+            else
+                routingTable[subnet] = side
+                print("Added route "..subnet.." -> "..side)
+            end
         elseif cmd=="del" and arg1=="route" and arg2~="" then
             routingTable[arg2] = nil; print("Deleted route for "..arg2)
         elseif cmd=="set" and arg1=="defaultroute" and arg2~="" then
