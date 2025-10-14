@@ -1,4 +1,4 @@
--- client.lua
+-- client.lua Version 1.0
 -- CC:Tweaked wired client for IP router & server systems
 -- Supports hostname keywords, automatic hello, and secure plaintext file transfer
 
