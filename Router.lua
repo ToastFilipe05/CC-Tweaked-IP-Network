@@ -1,30 +1,27 @@
--- router.lua Version 1.0
--- Wired IP router with:
---   - Host learning (client hello packets)
---   - Router-to-router hello ping
---   - Automatic removal of old IP on IP change
---   - Password-protected CLI
---   - Routing table management
---   - Keyword/IP mapping support
---   - Default route support
+-- Router.lua version 1.1
+-- Wired IP router with active host discovery, persistent routing table, and standardized IP file
 
 -- ==========================
 -- CONFIGURATION
 -- ==========================
-local sides = {"left","right","top","bottom","front","back"} -- modem sides
+local sides = {"left","right","top","bottom","front","back"}
 local DEFAULT_TTL = 8
-local routerIP = "10.10.10." .. os.getComputerID() -- router's IP (changeable via CLI)
+local HELLO_INTERVAL = 60
 local CLI_PASSWORD = "Admin"
+local ROUTING_FILE = "routing_table.txt"
+local IP_FILE = "ip.txt"
 
 -- ==========================
 -- STATE
 -- ==========================
-local interfaces = {}       -- side -> modem
-local hosts = {}            -- host IP -> side
-local routingTable = {}     -- subnet -> side
-local keywords = {}         -- keyword -> IP
-local seen = {}             -- packet UID cache
-local defaultRoute = nil    -- optional default route side
+local interfaces = {}
+local hosts = {}
+local routingTable = {}
+local keywords = {}
+local lastSeen = {}
+local seen = {}
+local defaultRoute = nil
+local routerIP
 
 -- ==========================
 -- UTILITIES
@@ -44,18 +41,63 @@ local function matchSubnet(ip, subnet)
     return a1==a2 and b1==b2 and c1==c2
 end
 
+local function saveRoutingTable()
+    local f = fs.open(ROUTING_FILE,"w")
+    for subnet, side in pairs(routingTable) do
+        f.writeLine(subnet.." "..side)
+    end
+    f.close()
+end
+
+local function loadRoutingTable()
+    if fs.exists(ROUTING_FILE) then
+        local f = fs.open(ROUTING_FILE,"r")
+        while true do
+            local line = f.readLine()
+            if not line then break end
+            local subnet, side = line:match("^(%S+)%s+(%S+)$")
+            if subnet and side then routingTable[subnet]=side end
+        end
+        f.close()
+    end
+end
+
+-- ==========================
+-- LOAD OR CREATE IP
+-- ==========================
+if not fs.exists(IP_FILE) then
+    routerIP = "10.10.10."..os.getComputerID()
+    local f = fs.open(IP_FILE,"w")
+    f.writeLine(routerIP)
+    f.close()
+    print("Created "..IP_FILE.." with default IP: "..routerIP)
+else
+    local f = fs.open(IP_FILE,"r")
+    routerIP = f.readLine()
+    f.close()
+    print("Loaded router IP from "..IP_FILE..": "..routerIP)
+end
+
+local function updateIPFile()
+    local f = fs.open(IP_FILE,"w")
+    f.writeLine(routerIP)
+    f.close()
+end
+
 -- ==========================
 -- SETUP INTERFACES
 -- ==========================
 for _, side in ipairs(sides) do
-    if peripheral.getType(side) == "modem" then
+    if peripheral.getType(side)=="modem" then
         local m = peripheral.wrap(side)
         interfaces[side] = m
         m.open(1)
         print("Opened modem on side "..side)
     end
 end
-if next(interfaces) == nil then error("No modems found!") end
+if next(interfaces)==nil then error("No modems found!") end
+
+loadRoutingTable()
 
 -- ==========================
 -- PACKET FORWARDING
@@ -63,103 +105,87 @@ if next(interfaces) == nil then error("No modems found!") end
 local function forwardPacket(packet, incomingSide)
     if seen[packet.uid] then return end
     seen[packet.uid] = true
-
     packet.ttl = (packet.ttl or DEFAULT_TTL) - 1
-    if packet.ttl <= 0 then return end
+    if packet.ttl<=0 then return end
 
-    -- LEARN HOST OR ROUTER
-    if packet.src and incomingSide then
-        hosts[packet.src] = incomingSide
-        local subnet = packet.src:match("^(%d+%.%d+%.%d+)")
-        routingTable[subnet] = incomingSide
-    end
-
-    -- HANDLE HELLO / PING PACKETS
     if type(packet.payload)=="table" then
         local payload = packet.payload
 
-        if payload.type=="HELLO_CLIENT" then
-            print("Learned client "..packet.src.." via "..incomingSide)
-            if payload.keyword then
-                keywords[payload.keyword] = packet.src
-                print("Assigned keyword '"..payload.keyword.."' -> "..packet.src)
-            end
-            return
-
-        elseif payload.type=="HELLO_ROUTER" then
+        -- HELLO_REPLY (from hosts)
+        if payload.type=="HELLO_REPLY" then
             hosts[packet.src] = incomingSide
+            lastSeen[packet.src] = os.clock()
             local subnet = packet.src:match("^(%d+%.%d+%.%d+)")
             routingTable[subnet] = incomingSide
-            print("Learned router "..packet.src.." via "..incomingSide)
-            if payload.remove then
-                hosts[payload.remove] = nil
-                local oldSubnet = payload.remove:match("^(%d+%.%d+%.%d+)")
-                routingTable[oldSubnet] = nil
-                print("Removed old IP: "..payload.remove)
-            end
-            local reply = { uid=makeUID(), src=routerIP, dst=packet.src, ttl=DEFAULT_TTL,
-                            payload={ type="HELLO_ROUTER_REPLY" } }
+            if payload.keyword then keywords[payload.keyword]=packet.src end
+            print("Discovered host "..packet.src.." via "..incomingSide)
+            saveRoutingTable()
+            return
+
+        -- HELLO_REQUEST (reply to other routers)
+        elseif payload.type=="HELLO_REQUEST" then
+            local reply = { uid=makeUID(), src=routerIP, dst=packet.src, ttl=DEFAULT_TTL, payload={ type="HELLO_REPLY" } }
             interfaces[incomingSide].transmit(1,1,reply)
-            return
-
-        elseif payload.type=="HELLO_ROUTER_REPLY" then
-            hosts[packet.src] = incomingSide
-            local subnet = packet.src:match("^(%d+%.%d+%.%d+)")
-            routingTable[subnet] = incomingSide
-            print("Received HELLO_ROUTER_REPLY from "..packet.src)
+            print("Replied to HELLO_REQUEST from "..packet.src)
             return
 
         elseif payload.type=="PING" then
-            local reply = { uid=makeUID(), src=routerIP, dst=packet.src, ttl=DEFAULT_TTL,
-                            payload={ type="PING_REPLY", message="pong" } }
+            local reply = { uid=makeUID(), src=routerIP, dst=packet.src, ttl=DEFAULT_TTL, payload={ type="PING_REPLY", message="pong" } }
             interfaces[incomingSide].transmit(1,1,reply)
             print("Replied to PING from "..packet.src)
         end
     end
 
-    -- PACKET FOR ROUTER ITSELF
-    if packet.dst == routerIP then
+    -- Packet destined for router itself
+    if packet.dst==routerIP then
         print(("Packet for router: %s"):format(textutils.serialize(packet.payload)))
         return
     end
 
-    -- FORWARDING
+    -- Forward to known hosts
     local targetSide = hosts[packet.dst]
-    if targetSide and targetSide ~= incomingSide then
+    if targetSide and targetSide~=incomingSide then
         interfaces[targetSide].transmit(1,1,packet)
         return
     end
-
     for subnet, side in pairs(routingTable) do
-        if matchSubnet(packet.dst, subnet) and side ~= incomingSide then
+        if matchSubnet(packet.dst,subnet) and side~=incomingSide then
             interfaces[side].transmit(1,1,packet)
             return
         end
     end
 
-    -- DEFAULT ROUTE
-    if defaultRoute and interfaces[defaultRoute] and defaultRoute ~= incomingSide then
+    -- Default route
+    if defaultRoute and interfaces[defaultRoute] and defaultRoute~=incomingSide then
         interfaces[defaultRoute].transmit(1,1,packet)
         return
     end
 
-    -- DROP PACKET
     print("Dropping packet to "..tostring(packet.dst).." (no route)")
 end
 
 -- ==========================
--- HELLO ROUTER PING
+-- PERIODIC HELLO + TIMEOUT
 -- ==========================
-local function pingRouters(oldIP)
-    local pingPacket = {
-        uid = makeUID(),
-        src = routerIP,
-        dst = "0",
-        ttl = DEFAULT_TTL,
-        payload = { type="HELLO_ROUTER", remove=oldIP }
-    }
-    for side, modem in pairs(interfaces) do modem.transmit(1,1,pingPacket) end
-    print("Sent HELLO_ROUTER ping on all interfaces.")
+local function periodicHelloCheck()
+    while true do
+        local packet = { uid=makeUID(), src=routerIP, dst="0", ttl=DEFAULT_TTL, payload={ type="HELLO_REQUEST" } }
+        for side, modem in pairs(interfaces) do modem.transmit(1,1,packet) end
+
+        local now = os.clock()
+        for host, t in pairs(lastSeen) do
+            if now - t > HELLO_INTERVAL then
+                print("Host timed out: "..host)
+                hosts[host] = nil
+                lastSeen[host] = nil
+                local subnet = host:match("^(%d+%.%d+%.%d+)")
+                routingTable[subnet] = nil
+                for k,v in pairs(keywords) do if v==host then keywords[k]=nil end end
+                saveRoutingTable()
+            end
+        end
+        os.sleep(HELLO_INTERVAL)
+    end
 end
 
 -- ==========================
@@ -189,7 +215,6 @@ local function cli()
         local line = read()
         if not line then break end
         local cmd,arg1,arg2,arg3 = line:match("^(%S+)%s*(%S*)%s*(%S*)%s*(%S*)$")
-
         if cmd=="help" then printHelp()
         elseif cmd=="exit" then return
         elseif cmd=="show" then
@@ -198,27 +223,18 @@ local function cli()
             elseif arg1=="keywords" then for k,v in pairs(keywords) do print(k.." -> "..v) end
             else print("Usage: show routes | show hosts | show keywords") end
         elseif cmd=="set" and arg1=="ip" and arg2~="" then
-            local oldIP = routerIP
             routerIP = arg2
-            print("Router IP changed from "..oldIP.." to "..routerIP)
-            pingRouters(oldIP)
+            updateIPFile()
+            print("Router IP updated to "..routerIP)
         elseif cmd=="add" and arg1=="route" and arg2~="" and arg3~="" then
-            local subnet, side = arg2, arg3
-            if not interfaces[side] then
-                print("Invalid side: "..side)
-            else
-                routingTable[subnet] = side
-                print("Added route "..subnet.." -> "..side)
-            end
+            local subnet, side = arg2,arg3
+            if not interfaces[side] then print("Invalid side: "..side)
+            else routingTable[subnet]=side; print("Added route "..subnet.." -> "..side); saveRoutingTable() end
         elseif cmd=="del" and arg1=="route" and arg2~="" then
-            routingTable[arg2] = nil; print("Deleted route for "..arg2)
+            routingTable[arg2]=nil; print("Deleted route for "..arg2); saveRoutingTable()
         elseif cmd=="set" and arg1=="defaultroute" and arg2~="" then
-            if interfaces[arg2] then
-                defaultRoute = arg2
-                print("Default route set to side "..arg2)
-            else
-                print("Invalid side: "..arg2)
-            end
+            if interfaces[arg2] then defaultRoute=arg2; print("Default route set to "..arg2)
+            else print("Invalid side: "..arg2) end
         elseif cmd=="sides" then for s,_ in pairs(interfaces) do print("  "..s) end
         else print("Unknown command.") end
     end
@@ -239,5 +255,4 @@ end
 -- ==========================
 -- STARTUP
 -- ==========================
-pingRouters()
-while true do parallel.waitForAny(listener, cli) end
+parallel.waitForAny(listener, cli, periodicHelloCheck)
