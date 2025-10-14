@@ -1,4 +1,4 @@
--- router.lua
+-- router.lua Version 1.0
 -- Wired IP router with:
 --   - Host learning (client hello packets)
 --   - Router-to-router hello ping
