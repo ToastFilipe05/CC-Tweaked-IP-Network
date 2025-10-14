@@ -1,4 +1,4 @@
--- fileServer.lua
+-- fileServer.lua Version 1.0
 -- CC:Tweaked server for file sharing with password protection
 -- Features:
 --   - Automatic IP from server_ip.txt
