@@ -105,7 +105,7 @@ end
 local function receiveLoop()
     while true do
         local e, side, ch, reply, message, dist = os.pullEvent("modem_message")
-        if type(message)=="table" and myIP and message.dst==myIP then
+        if type(message)=="table" and myIP and (message.dst==myIP or message.dst=="0") then
             local payload = message.payload
             if type(payload)~="table" then
                 print("Invalid payload from "..tostring(message.src))
