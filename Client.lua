@@ -1,14 +1,34 @@
--- client.lua Version 1.2
+-- client.lua Version 1.3
 -- CC:Tweaked wired client for IP router & server systems
--- Supports hostname keywords, HELLO_REPLY only, secure plaintext file transfer, and standardized IP file
+-- Supports hostname keywords, HELLO_REPLY only, secure plaintext file transfer, standardized IP file
+-- Added automatic multishell self-launch
 
+-- ==========================
+-- SELF-LAUNCH IN MULTISHELL
+-- ==========================
+if multishell and multishell.getCurrent() then
+    local running = false
+    local currentProgram = shell.getRunningProgram()
+    for _, tab in pairs(multishell.getTabs()) do
+        if tab.program == currentProgram then
+            running = true
+            break
+        end
+    end
+    if not running then
+        multishell.launch(shell, currentProgram)
+        return
+    end
+end
+
+-- ==========================
+-- ORIGINAL CLIENT CODE STARTS HERE
+-- ==========================
 local modemSide = "back"
 local modem = peripheral.wrap(modemSide)
 modem.open(1)
 
--- ==========================
 -- IP MANAGEMENT
--- ==========================
 local IP_FILE = "ip.txt"
 local myIP
 
@@ -31,9 +51,7 @@ local function saveIP()
     f.close()
 end
 
--- ==========================
 -- HOSTS MANAGEMENT
--- ==========================
 local hosts = {}
 if fs.exists("hosts.txt") then
     local hfile = fs.open("hosts.txt", "r")
@@ -48,9 +66,7 @@ else
     print("Warning: hosts.txt not found — keyword lookups disabled.")
 end
 
--- ==========================
 -- PACKET UTILITIES
--- ==========================
 local seq = 0
 local function makeUID()
     seq = seq + 1
@@ -75,18 +91,14 @@ local function sendPacket(dst, payload)
     modem.transmit(1,1,packet)
 end
 
--- ==========================
--- HELLO_REPLY (triggered by router)
--- ==========================
+-- HELLO_REPLY
 local function replyHello(requester)
     if not myIP then return end
     sendPacket(requester, { type="HELLO_REPLY" })
     print("Replied to HELLO_REQUEST from "..requester)
 end
 
--- ==========================
 -- FILE TRANSFER
--- ==========================
 local receivingFile = false
 local fileBuffer = {}
 local expectedChunks = 0
@@ -99,9 +111,7 @@ local function requestFile(serverKeyword, filename, password)
     sendPacket(dst, { type="FILE_REQUEST", filename=filename, password=password })
 end
 
--- ==========================
 -- RECEIVE LOOP
--- ==========================
 local function receiveLoop()
     while true do
         local e, side, ch, reply, message, dist = os.pullEvent("modem_message")
@@ -155,9 +165,7 @@ local function receiveLoop()
     end
 end
 
--- ==========================
 -- CLI LOOP
--- ==========================
 local colorsList = { colors.cyan, colors.yellow, colors.green, colors.magenta }
 
 local function printCommands()
@@ -205,7 +213,5 @@ local function cliLoop()
     end
 end
 
--- ==========================
 -- RUN CLIENT
--- ==========================
 parallel.waitForAny(receiveLoop, cliLoop)
