@@ -1,13 +1,13 @@
 --====================================================
--- switch.lua | Version 1.0
+-- switch.lua | Version 1.1
 --====================================================
 -- Purpose:
---   Forwards packets between directly connected hosts.
+--   Forwards packets between directly connected hosts and switches.
+--   Learns hosts behind neighbor switches automatically.
 --   Maintains a routing_table.txt of learned connections.
---   Requests a default route on boot.
 --====================================================
 
-local version = "1.0"
+local version = "1.1"
 local routing_table_file = "routing_table.txt"
 local routing_table = {}
 local default_route = nil
@@ -77,7 +77,7 @@ local function forwardPacket(side, packet)
     local dest = packet.dst
     local src = packet.src
 
-    -- Learn source host location
+    -- Learn source host location (passive host propagation)
     if src and not routing_table[src] then
         routing_table[src] = side
         log("Learned route: " .. src .. " -> " .. side)
@@ -86,6 +86,13 @@ local function forwardPacket(side, packet)
 
     -- Determine where to forward
     local out_side = routing_table[dest] or default_route
+
+    -- Avoid sending back to the incoming side
+    if out_side == side then
+        log("Destination " .. dest .. " is on incoming side, dropping packet.")
+        return
+    end
+
     if out_side and interfaces[out_side] then
         interfaces[out_side].transmit(1, 1, packet)
         log("Forwarded packet " .. tostring(src) .. " -> " .. tostring(dest) .. " via " .. out_side)
