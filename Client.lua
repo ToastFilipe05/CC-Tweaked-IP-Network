@@ -4,22 +4,17 @@
 -- Added automatic multishell self-launch
 
 -- ==========================
--- SELF-LAUNCH IN MULTISHELL
+-- SELF-LAUNCH IN MULTISHELL (Forge-safe)
 -- ==========================
-if multishell and multishell.getCurrent() then
-    local running = false
+if type(multishell) == "table" and type(multishell.getCurrent) == "function" then
     local currentProgram = shell.getRunningProgram()
-    for _, tab in pairs(multishell.getTabs()) do
-        if tab.program == currentProgram then
-            running = true
-            break
-        end
-    end
-    if not running then
+    -- Only launch a new tab if we are running in the first tab
+    if multishell.getCurrent() == 1 then
         multishell.launch(shell, currentProgram)
         return
     end
 end
+
 
 -- ==========================
 -- ORIGINAL CLIENT CODE STARTS HERE
