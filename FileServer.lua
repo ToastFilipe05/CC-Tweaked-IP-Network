@@ -1,29 +1,45 @@
--- fileServer.lua Version 1.2
+-- fileServer.lua Version 1.3
 -- CC:Tweaked server for file sharing with password protection
--- Uses HELLO_REPLY only, auto IP and password files, and restricts transfers to /files/
+-- Uses HELLO_REPLY only, auto IP and password files, restricts transfers to /files/
+-- Added automatic multishell self-launch
 
+-- ==========================
+-- SELF-LAUNCH IN MULTISHELL
+-- ==========================
+if multishell and multishell.getCurrent() then
+    local running = false
+    local currentProgram = shell.getRunningProgram()
+    for _, tab in pairs(multishell.getTabs()) do
+        if tab.program == currentProgram then
+            running = true
+            break
+        end
+    end
+    if not running then
+        multishell.launch(shell, currentProgram)
+        return
+    end
+end
+
+-- ==========================
+-- ORIGINAL FILE SERVER CODE STARTS HERE
+-- ==========================
 local modemSide = "back"
 local modem = peripheral.wrap(modemSide)
 modem.open(1)
 
--- ==========================
 -- CONFIGURATION
--- ==========================
 local CHUNK_SIZE = 512
 local IP_FILE = "ip.txt"
 local PASSWORD_FILE = "server_password.txt"
 local FILE_DIR = "/files/"
 
--- ==========================
 -- STATE
--- ==========================
 local hosts = {}
 local myIP
 local SERVER_PASSWORD
 
--- ==========================
 -- LOAD OR CREATE IP
--- ==========================
 if not fs.exists(IP_FILE) then
     local f = fs.open(IP_FILE,"w")
     f.writeLine("")
@@ -43,9 +59,7 @@ local function saveIP()
     f.close()
 end
 
--- ==========================
 -- LOAD OR CREATE SERVER PASSWORD
--- ==========================
 if not fs.exists(PASSWORD_FILE) then
     local f = fs.open(PASSWORD_FILE,"w")
     f.writeLine("")
@@ -65,9 +79,7 @@ local function savePassword()
     f.close()
 end
 
--- ==========================
 -- LOAD HOSTS KEYWORDS
--- ==========================
 if fs.exists("hosts.txt") then
     local file = fs.open("hosts.txt","r")
     while true do
@@ -79,9 +91,7 @@ if fs.exists("hosts.txt") then
     file.close()
 end
 
--- ==========================
 -- PACKET UTILITIES
--- ==========================
 local seq = 0
 local function makeUID()
     seq = seq + 1
@@ -102,18 +112,14 @@ local function sendPacket(dst,payload)
     modem.transmit(1,1,packet)
 end
 
--- ==========================
--- HELLO_REPLY (triggered by router)
--- ==========================
+-- HELLO_REPLY
 local function replyHello(requester)
     if not myIP then return end
     sendPacket(requester,{ type="HELLO_REPLY" })
     print("Replied to HELLO_REQUEST from "..requester)
 end
 
--- ==========================
 -- FILE TRANSFER FUNCTIONS
--- ==========================
 local function sendFile(dst, filename)
     local fullPath = FILE_DIR..filename
     if not fs.exists(fullPath) then
@@ -139,9 +145,7 @@ local function sendFile(dst, filename)
     print("File "..filename.." sent successfully")
 end
 
--- ==========================
 -- RECEIVE LOOP
--- ==========================
 local function receiveLoop()
     while true do
         local e, side, ch, reply, message, dist = os.pullEvent("modem_message")
@@ -173,9 +177,7 @@ local function receiveLoop()
     end
 end
 
--- ==========================
 -- CLI LOOP
--- ==========================
 local function cliLoop()
     print("Server ready. Commands: set ip <ip>, set password <password>, ip, list hosts, exit")
     while true do
@@ -200,9 +202,6 @@ local function cliLoop()
     end
 end
 
--- ==========================
 -- START SERVER
--- ==========================
--- Ensure /files/ exists
 if not fs.exists(FILE_DIR) then fs.makeDir(FILE_DIR) end
 parallel.waitForAny(receiveLoop, cliLoop)
