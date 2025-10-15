@@ -1,9 +1,29 @@
--- router.lua Version 1.3
+-- router.lua Version 1.4
 -- Secure router with persistent routing, password CLI, clean autostart, and safe termination
+-- Added automatic multishell self-launch
 
 -- ==========================
--- CONFIGURATION
+-- SELF-LAUNCH IN MULTISHELL
 -- ==========================
+if multishell and multishell.getCurrent() then
+    local running = false
+    local currentProgram = shell.getRunningProgram()
+    for _, tab in pairs(multishell.getTabs()) do
+        if tab.program == currentProgram then
+            running = true
+            break
+        end
+    end
+    if not running then
+        multishell.launch(shell, currentProgram)
+        return
+    end
+end
+
+-- ==========================
+-- ORIGINAL ROUTER CODE STARTS HERE
+-- ==========================
+-- CONFIGURATION
 local sides = {"left","right","top","bottom","front","back"}
 local DEFAULT_TTL = 8
 local HELLO_INTERVAL = 60
@@ -11,9 +31,7 @@ local CLI_PASSWORD = "Admin"
 local ROUTING_FILE = "routing_table.txt"
 local IP_FILE = "ip.txt"
 
--- ==========================
 -- STATE
--- ==========================
 local interfaces = {}
 local hosts = {}
 local routingTable = {}
@@ -24,9 +42,7 @@ local defaultRoute = nil
 local routerIP
 local terminated = false
 
--- ==========================
 -- UTILITIES
--- ==========================
 local function makeUID()
     return tostring(os.clock()).."-"..tostring(math.random(1,99999))
 end
@@ -68,9 +84,7 @@ local function loadRoutingTable()
     end
 end
 
--- ==========================
 -- LOAD OR CREATE IP
--- ==========================
 if not fs.exists(IP_FILE) then
     routerIP = "10.10.10."..os.getComputerID()
     local f = fs.open(IP_FILE,"w")
@@ -90,9 +104,7 @@ local function updateIPFile()
     f.close()
 end
 
--- ==========================
 -- SETUP INTERFACES
--- ==========================
 for _, side in ipairs(sides) do
     if peripheral.getType(side)=="modem" then
         local m = peripheral.wrap(side)
@@ -105,9 +117,7 @@ if next(interfaces)==nil then error("No modems found!") end
 
 loadRoutingTable()
 
--- ==========================
 -- PACKET FORWARDING
--- ==========================
 local function forwardPacket(packet, incomingSide)
     if seen[packet.uid] then return end
     seen[packet.uid] = true
@@ -162,9 +172,7 @@ local function forwardPacket(packet, incomingSide)
     print("Dropping packet to "..tostring(packet.dst).." (no route)")
 end
 
--- ==========================
 -- PERIODIC HELLO + TIMEOUT
--- ==========================
 local function periodicHelloCheck()
     while not terminated do
         local packet = { uid=makeUID(), src=routerIP, dst="0", ttl=DEFAULT_TTL, payload={ type="HELLO_REQUEST" } }
@@ -176,7 +184,7 @@ local function periodicHelloCheck()
                 print("Host timed out: "..host)
                 hosts[host] = nil
                 lastSeen[host] = nil
-                local subnet = host:match("^(%d+%.%d+%.%d+)")
+                local subnet = host:match("^(%d+%.%d+%.%d+)") 
                 routingTable[subnet] = nil
                 for k,v in pairs(keywords) do if v==host then keywords[k]=nil end end
                 saveRoutingTable()
@@ -186,9 +194,7 @@ local function periodicHelloCheck()
     end
 end
 
--- ==========================
 -- CLI
--- ==========================
 local function printHelp()
     print([[Router Commands:
   show routes
@@ -254,9 +260,7 @@ local function cli()
     end
 end
 
--- ==========================
 -- EVENT LOOP
--- ==========================
 local function listener()
     while not terminated do
         local e, side, ch, reply, msg, dist = os.pullEvent("modem_message")
@@ -266,9 +270,7 @@ local function listener()
     end
 end
 
--- ==========================
 -- AUTOSTART SETUP
--- ==========================
 local function ensureStartup()
     local startupContent = ""
     if fs.exists("startup") then
@@ -288,7 +290,5 @@ end
 
 ensureStartup()
 
--- ==========================
 -- STARTUP
--- ==========================
 parallel.waitForAny(listener, cli, periodicHelloCheck)
