@@ -1,3 +1,4 @@
+--TO INSTALL RUN "pastebin get cYVhLAtp updater.lua" ON SHELL
 local run = true
 
 local function routerUpdater()
