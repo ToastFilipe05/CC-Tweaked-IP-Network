@@ -1,5 +1,5 @@
 --====================================================
--- switch.lua | Version 1.1
+-- switch.lua | Version 1.2
 --====================================================
 -- Purpose:
 --   Forwards packets between directly connected hosts and switches.
@@ -7,7 +7,7 @@
 --   Maintains a routing_table.txt of learned connections.
 --====================================================
 
-local version = "1.1"
+local version = "1.2"
 local routing_table_file = "routing_table.txt"
 local routing_table = {}
 local default_route = nil
@@ -78,28 +78,37 @@ local function forwardPacket(side, packet)
     local src = packet.src
 
     -- Learn source host location (passive host propagation)
-    if src and not routing_table[src] then
+    if src and dest ~= "0" and not routing_table[src] then
         routing_table[src] = side
         log("Learned route: " .. src .. " -> " .. side)
         saveRoutingTable()
     end
 
-    -- Determine where to forward
-    local out_side = routing_table[dest] or default_route
-
-    -- Avoid sending back to the incoming side
-    if out_side == side then
-        log("Destination " .. dest .. " is on incoming side, dropping packet.")
-        return
-    end
-
-    if out_side and interfaces[out_side] then
-        interfaces[out_side].transmit(1, 1, packet)
-        log("Forwarded packet " .. tostring(src) .. " -> " .. tostring(dest) .. " via " .. out_side)
+    if dest == "0" then
+        -- Broadcast: send out all interfaces except incoming
+        for s, modem in pairs(interfaces) do
+            if s ~= side then
+                modem.transmit(1, 1, packet)
+            end
+        end
+        log("Broadcast packet " .. tostring(src) .. " -> " .. tostring(dest) .. " forwarded to all sides except " .. side)
     else
-        log("No route found for " .. tostring(dest) .. ", dropping packet.")
+        -- Unicast: normal forwarding
+        local out_side = routing_table[dest] or default_route
+        if out_side and interfaces[out_side] then
+            if out_side == side then
+                log("Destination " .. dest .. " is on incoming side, dropping packet.")
+                return
+            end
+            interfaces[out_side].transmit(1, 1, packet)
+            log("Forwarded packet " .. tostring(src) .. " -> " .. tostring(dest) .. " via " .. out_side)
+        else
+            log("No route found for " .. tostring(dest) .. ", dropping packet.")
+        end
     end
 end
+
+
 
 --====================================================
 -- Main Loop
