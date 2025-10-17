@@ -1,4 +1,4 @@
--- hostServer.lua Version 1.0
+-- hostServer.lua Version 1.1
 -- Central host registry server that distributes hosts.txt via diff updates
 -- Sends full update on boot and diffs every change; periodic broadcast every 10 minutes
 -- Forge-safe multishell self-launch included
