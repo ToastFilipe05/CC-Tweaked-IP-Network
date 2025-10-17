@@ -1,10 +1,10 @@
--- fileServer.lua Version 1.3
+-- fileServer.lua Version 1.31
 -- CC:Tweaked server for file sharing with password protection
 -- Uses HELLO_REPLY only, auto IP and password files, restricts transfers to /files/
 -- Added automatic multishell self-launch
 
 -- ==========================
--- SELF-LAUNCH IN MULTISHELL (Forge-safe)
+-- SELF-LAUNCH IN MULTISHELL
 -- ==========================
 if type(multishell) == "table" and type(multishell.getCurrent) == "function" then
     local currentProgram = shell.getRunningProgram()
@@ -15,6 +15,13 @@ if type(multishell) == "table" and type(multishell.getCurrent) == "function" the
     end
 end
 
+-- ==========================
+-- DEBUG MODE
+-- ==========================
+local DEBUG = false
+local function debugPrint(msg)
+    if DEBUG then print("[DEBUG] " .. msg) end
+end
 
 -- ==========================
 -- ORIGINAL FILE SERVER CODE STARTS HERE
@@ -111,7 +118,7 @@ end
 local function replyHello(requester)
     if not myIP then return end
     sendPacket(requester,{ type="HELLO_REPLY" })
-    print("Replied to HELLO_REQUEST from "..requester)
+    debugPrint("Replied to HELLO_REQUEST from "..requester)
 end
 
 -- FILE TRANSFER FUNCTIONS
@@ -165,7 +172,7 @@ local function receiveLoop()
                     print("Received PING from "..message.src)
                     sendPacket(message.src,{ type="PING_REPLY", message="pong" })
                 else
-                    print(("Message from %s: %s"):format(message.src, textutils.serialize(payload)))
+                    debugPrint(("Message from %s: %s"):format(message.src, textutils.serialize(payload)))
                 end
             end
         end
