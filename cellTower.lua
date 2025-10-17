@@ -7,7 +7,7 @@ local DEBUG = false
 local function dprint(msg) if DEBUG then print("[DEBUG] " .. msg) end end
 
 -- CONFIGURATION
-local TOWER_IP_FILE = "tower_ip.txt"
+local TOWER_IP_FILE = "ip.txt"
 local DEFAULT_TTL = 8
 local HELLO_INTERVAL = 60
 local ROUTING_FILE = "tower_routes.txt"
@@ -43,7 +43,7 @@ if fs.exists(TOWER_IP_FILE) then
     towerIP = f.readLine()
     f.close()
 else
-    towerIP = "10.20." .. math.random(10,99) .. "." .. os.getComputerID()
+    towerIP = "10.10.10." .. os.getComputerID()
     local f = fs.open(TOWER_IP_FILE, "w")
     f.writeLine(towerIP)
     f.close()
@@ -58,7 +58,7 @@ local routingTable = {}
 
 -- UTILS
 local function makeUID()
-    return tostring(os.clock()) .. "-" .. tostring(math.random(1,99999))
+    return tostring(os.clock()) .. "-" .. tostring(os.getComputerID())
 end
 
 local function splitIP(ip)
