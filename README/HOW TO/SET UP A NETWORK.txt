@@ -1,1 +1,2 @@
-
+First you want to make tunnels running under your "City"
+These tunnels should be 3x3 and a minimum of 5 blocks under your ground level
