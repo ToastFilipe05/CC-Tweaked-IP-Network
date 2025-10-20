@@ -1,1 +1,2 @@
-wow
+Fix Hello packet being forwarded when they can't forward the replies, could optionally make Hello packets TTL 3 and the replies only get sent to other routers
+(This makes it so if multiple routers without default routes are connected they can somewhat set up the routes without my input)
