@@ -1,1 +1,36 @@
-banking over IP
+banking over IP these plans are very primitive and will be changed because I will be trying to implement some sort of compatability with the mod lightman's currency
+
+Make a bank program that on bootup will contact a server with ip address of 201.200.99.99 and request information from a file that has account info like account name, money and account ID (6 digit number always starting with 874) the file shouldn't be sent to the computer just information from the file, if the computer can't find a acct.txt file in its dir it should create a acct.txt file and prompt the user for an account name then it sends an c_acct_request to the server, the server should then make a new .txt file with the information from the c_acct_request, the name of the file should be the account ID ex.874001.txt, which it should get from a variable stored in a separate file called varacct.txt which it's only purpose should be to keep track of the latest acct number ex. First account ID 874001, then when a new account is being made the variable goes up by one making the new account ID 874002, the 874xxx.txt files should look like this:
+[Account Name: c_acct_request_name
+Account ID: 874xxx
+Balance: 0 ]
+
+Then the server will update a monitor connected to the server saying "Physical accounts needed :x" the server should only decrease this variable when a computer from the bank network (192.168.99) sends a CONSTRUCTED packet (the packet should only contain the computer's associated AccountID and balance). The server should send a message to the bank client that says, "Please head to 110 Minecart Ln to deposit cash" after receiving the c_acct_request, the bank sever should then return to waiting for packets
+
+There should be computers called physical account that have an assigned account ID and they will be connected to a physical storage and the computer will first look inside the physical storage and make a CONSTRUCTED packet that will have information like AccountID of the computer, and the cash that exists in the physical storage, cash will be represented like this for now
+Iron nugget = $0.01
+Gold nugget = $1.00
+Iron Ingot = $0.10
+Gold Ingot= $10.00
+Diamond = $100.00
+Netherite Ingot = $1000.00
+There should also be an update_balance packet sent to the bank server every 15 seconds this packet will contain AccountID and current balance in the physical storage
+
+Next a online spending feature should be made, first a marketplace needs to be made for the client the marketplace should pull from the hosts.txt to find store servers [create a way to tag host translations and the program will look for store tag] store servers will not need a password to access the information from inventory.txt which will have information formatted like so:
+
+[Item] x[quantity] $[price]
+
+The server should have commands that allow the store to set prices and items without having to manually add them to the inventory.txt file next the server should be connected to a physical inventory that holds all the items the store wants to sell online and only updates the quanity of the items  to inventory.txt either when the update inventory command is ran or on bootup.
+
+Clients will first need to enter a command called shop [store server name] this command should start a dialog with the store server basically just going to automatically fill in the store server ip when otherwise it would be a required feild
+The user will now be able to enter the commands inventory and buy, inventory will send a request to the store server to display the store's inventory without actually sending the inventory.txt file. When the user tries to purchase an item with the buy command they will fill out the required fields, user name, user bank acctid, physical address, the item they want to purchase and the quanity of said item. The computer will then construct a sell_request packet which sends (user name, user bank acctid, user physical address, item, quantity) to the store server where the server will then send a transfer_request packet to the bank server that contains (src account, dst account) the bank server will try to transfer the cash from the src account balance to the dst account balance if this is successful the bank will send a transferred packet the store server will then add the sell_request information to a connected monitor like so:
+
+
+John Doe, Minecart lane 129, stick, 5
+Jillian Hank, Mineshaft road 145, coal, 32
+[User name], [user physical address] [item], [quantity]
+
+And the quanity of the item will be removed from inventory.txt to avoid double purchases, to remove a entry from the monitor an employee should have to enter a delivered command with the argument of the user name this will remove the first instance of that user name to avoid accidental deletion when two sell_request share the same user name
+
+
+If the transfer is unsuccessful the bank will send a insufficient_balance packet the store server will then send it's own insufficient_balance packet that once the client receives the packet prints to the user "Failed purchase, insufficient balance"
