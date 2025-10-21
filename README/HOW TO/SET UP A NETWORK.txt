@@ -1,2 +1,89 @@
 First you want to make tunnels running under your "City"
 These tunnels should be 3x3 and a minimum of 5 blocks under your ground level
+this is so you can surround your networking tunnels with a hard block so not 
+just anyone can break into the tunnel and destroy your network
+
+Secondly you want to come up with a plan of where your devices are going to be,
+something like this would help
+
+Office 1 computer --------- Switch --------- Office 1 computer
+                              |
+                              |
+                              |
+Office 1 computer --------- Switch --------- Office 1 server
+                              |
+                              |
+                              |
+                       Endpoint Router
+                              |
+                              |
+                              |
+                              |
+                              |
+ Office 3 Router ------ Main Network Router ------- Office 2 network
+                              |
+                              |
+                              |
+                              |
+Main Network Router -- Central Router ------- Office 4 Router
+
+
+This plan will be immensely helpful when building your network
+Once you have all the Computers placed following your network plan,
+you first want to set up the routers and switches starting from the inside out
+First start with your central router(s) they have no default route and will 
+know all the subnets in your network, for example lets say the subnets worked like so
+Office 1: 192.168.57
+Office 2: 192.168.12
+Office 3: 192.168.78
+Office 4: 192.168.18
+and hypothetically the other Main Network Router connected to Central router was connected to 
+Office 5: 192.168.240
+Office 6: 192.168.140
+Office 7: 192.168.182
+
+The central router would have to know that the subnets of Office 1-4 are the back modem
+and that Office 5-7  are on the left modem, but the Main Network Router would only have 
+to know Office 1-4's associated modems, same applies to the other Main Network Router
+Endpoint routers only have to know their directly connected subnets
+
+Central router's do not have any default route Unless you split your network in two 
+halfs where you have two central routers that know each of their own sides basically 
+making them act as two Main Network Routers treating each other as the central router
+
+Endpoint and Main Network Routers do have a default route that points 
+toward the central router who will know where to send the packet
+or if they should just drop the unknown address
+
+So when making your network find your Central Router and add routes to every 
+subnet that connects in any way to the central router next on your 
+Main Network Routers add all the subnets that are on that side 
+of the connected central router and set the default route toward the Central Router
+
+Endpoint routers just need a default route and they should be completely set up
+
+Switches are instantly set up once you start them and enter side (this is for default route)
+
+Servers are variable and set up most of the time like a client check their specific HOW TO file for more info
+
+Clients only need you to set an IP address and it should try to follow the 192.168._._ format, otherwise it might mess something up
+
+Other IP conventions to follow are 
+Routers always start with 10.10.10 and the last number is decieded with their computer ID so to avoid any overlap (automatic)
+Servers always follow the 201.200._._ format (manual)
+Switches never have an IP as they only forward packets to learned hosts and through the default route (manual)
+
+The network admin (You most likely) should always keep track of the IP addressing so they don't accidently overlap with other existing IP addresses
+
+If you're using this in some sort of roleplay server you can make your own IP addressing formats to use it doesn't matter for the wired network at all as long as it follows the _._._._ format nothing else matters to the .lua code
+
+
+
+
+
+
+
+
+
+
+
