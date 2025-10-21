@@ -1,6 +1,7 @@
 These files are not the same across pastebin and github
 
 Client.lua (Pastebin version untested)
+HostServer.lua (Pastebin version untested)
 FileServer.lua (Pastebin version untested)
 wirelessClient.lua (Pastebin version untested)
 cellTower.lua (Pastebin version untested)
