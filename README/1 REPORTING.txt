@@ -1,8 +1,8 @@
-I am a computer science major switching from IT and I thought this would be a fun little project to try and start learning lua.
+I am a computer science major switching from IT and I thought this would be a fun little project.
 
 Don't expect for me to respond to bug reports or to have any urgency to fixing them if I even receive a report
 I'm also not going to complain if you steal all this code and reshare it elsewhere
 use this in any server or modpack you want (I don't know how you'd get this in a modpack, but I've seen crazier things)
 
-Use the How to use.txt (Hasn't been made yet) to learn how to set up your own network in your world and to get started making your own files/devices that 
+Use the How to use.txt (Hasn't been completed) to learn how to set up your own network in your world and to get started making your own files/devices that 
 interact with the IP networking
