@@ -1,5 +1,5 @@
 -- client.lua Version 1.4
--- Compatible with HostServer 1.72+ diff update system
+-- Compatible with HostServer 1.1+ diff update system
 -- CC:Tweaked wired client for IP router & server systems
 -- Supports hostname keywords, HELLO_REPLY only, secure plaintext file transfer, standardized IP file
 -- Added automatic multishell self-launch and host sync updates
