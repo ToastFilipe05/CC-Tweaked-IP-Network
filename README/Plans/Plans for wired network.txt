@@ -1,15 +1,15 @@
-Continue updating to multi-channel system (ONLY ON PASTEBIN VERSION) 
+Continue updating to multi-channel system
 I've been lazy to updating the github and I want to make sure everything is compatable before moving over
 
-
+THESE ARE ONLY ON PASTEBIN VERSION CURRENTLY
 current fully integrated devices, with both multi-channel and switch discovery support
 
 switch.lua 
 hostServer.lua (if you want this has packet handling for S_H packets (switch hello) you could just copy and paste under the right places in other files)
+client.lua
 
 devices that have multi-channel support, but not integrated with new switch discovery
 
-client.lua
 router.lua
 fileServer.lua
 
