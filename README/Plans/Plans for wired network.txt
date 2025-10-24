@@ -7,10 +7,10 @@ current fully integrated devices, with both multi-channel and switch discovery s
 switch.lua 
 hostServer.lua (if you want this has packet handling for S_H packets (switch hello) you could just copy and paste under the right places in other files)
 client.lua
+router.lua
 
 devices that have multi-channel support, but not integrated with new switch discovery
 
-router.lua
 fileServer.lua
 
 devices that have no multi-channel support and not integrated with new switch discovery
