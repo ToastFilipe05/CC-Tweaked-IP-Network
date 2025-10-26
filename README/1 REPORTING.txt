@@ -10,7 +10,10 @@ interact with the IP networking
 Keep up with my work here https://trello.com/b/KShbZV8M
 
 IMPORTANT NOTE
-Right now the current code in Github should work, but the code in pastebin doesn't, I've been working on this project non-stop for weeks now and I've grown tired of trying to fix the couple of bugs it has, everytime I fix one another one pops up, so for now I'm on hiatus, I might return to fix it (knowing how stubborn I am I might be back on it within the week) but there's also a chance I don't so I'm putting this message here for anyone curious
+Right now the current code in Github should work, but the code in pastebin doesn't, I've been working on this project non-stop for weeks now and I've grown tired of trying to fix the couple of bugs it has, everytime 
+I fix one another one pops up, so for now I'm on hiatus, 
+I might return to fix it (knowing how stubborn I am I might be back on it within the week) 
+but there's also a chance I don't so I'm putting this message here for anyone curious
 
 The Github page is also incomplete as I was fist going to get the basic infrastructure working before moving onto the HOW TO's and extra IP dependent lua files
 
