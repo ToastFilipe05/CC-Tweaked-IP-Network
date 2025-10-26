@@ -7,6 +7,7 @@ use this in any server or modpack you want (I don't know how you'd get this in a
 Use the How to use.txt (Hasn't been completed) to learn how to set up your own network in your world and to get started making your own files/devices that 
 interact with the IP networking
 
+Keep up with my work here https://trello.com/b/KShbZV8M
 
 IMPORTANT NOTE
 Right now the current code in Github should work, but the code in pastebin doesn't, I've been working on this project non-stop for weeks now and I've grown tired of trying to fix the couple of bugs it has, everytime I fix one another one pops up, so for now I'm on hiatus, I might return to fix it (knowing how stubborn I am I might be back on it within the week) but there's also a chance I don't so I'm putting this message here for anyone curious
