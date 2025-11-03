@@ -1,6 +1,5 @@
--- router.lua Version 1.62
--- Secure router with persistent routing, password CLI, clean autostart, safe termination
--- Fixes: ensure route learning works, robust broadcast forwarding, monitor output
+-- router.lua Version 1.94
+-- Secure router with persistent routing, password CLI, clean autostart, safe termination, multi-channel support, switch discovery support
 
 -- SELF-LAUNCH IN MULTISHELL (Forge-safe)
 if type(multishell) == "table" and type(multishell.getCurrent) == "function" then
@@ -46,6 +45,8 @@ local HELLO_INTERVAL = 60
 local CLI_PASSWORD = "Admin"
 local ROUTING_FILE = "routing_table.txt"
 local IP_FILE = "ip.txt"
+local PRIVATE_CHANNEL = os.getComputerID()
+local knownChannels = {}
 
 -- STATE
 local interfaces = {}
@@ -58,8 +59,10 @@ local routerIP
 local terminated = false
 
 -- UTILITIES
+local seq = 0
 local function makeUID()
-    return tostring(os.clock()).."-"..tostring(math.random(1,99999))
+	seq = seq+1
+    return tostring(seq).."-"..tostring(os.getComputerID())
 end
 
 local function splitIP(ip)
@@ -128,21 +131,19 @@ for _, side in ipairs(sides) do
     if peripheral.getType(side) == "modem" then
         local m = peripheral.wrap(side)
         interfaces[side] = m
-        -- open channel 1 for all modems we find
-        pcall(function() m.open(1) end)
-        logInfo("Opened modem on side "..side)
+        pcall(function()
+            m.open(1)                -- broadcast/discovery
+            m.open(PRIVATE_CHANNEL)  -- unicast
+        end)
+        logInfo("Opened modem on side "..side.." (channels 1 + "..PRIVATE_CHANNEL..")")
     end
 end
+
 if next(interfaces) == nil then error("No modems found!") end
 
 loadRoutingTable()
 
 -- PACKET UTILS
-local function sendPacketOnSide(side, dst, payload)
-    if not routerIP or not interfaces[side] then return end
-    local packet = { uid = makeUID(), src = routerIP, dst = dst, ttl = DEFAULT_TTL, payload = payload }
-    interfaces[side].transmit(1,1,packet)
-end
 
 local function broadcastOnAllExcept(incomingSide, packet)
     for side, m in pairs(interfaces) do
@@ -152,13 +153,26 @@ local function broadcastOnAllExcept(incomingSide, packet)
     end
 end
 
-local function sendPacket(dst, payload)
-    if not routerIP then
-        logInfo("Set your IP first with 'set ip <ip>' before sending packets.")
-        return
-    end
-    local packet = { uid = makeUID(), src = routerIP, dst = dst, ttl = DEFAULT_TTL, payload = payload }
-    for side, m in pairs(interfaces) do m.transmit(1,1,packet) end
+local function switchReply(side, packet)
+    local payload = packet.payload
+     -- Only respond if this is a switch hello from a switch
+    if not payload.switch then return end
+     -- Respond to switch with our IP and private channel
+    local response = {
+        type = "S_H",
+        switch = false, -- router, not a switch
+        private_channel = PRIVATE_CHANNEL
+    }
+    local pckt = {
+   		uid = makeUID(),
+        src = routerIP,
+        dst = packet.src,
+        ttl = 8,
+        payload = response
+    }
+    -- Send back to the switch using the port we received from
+    interfaces[side].transmit(payload.private_channel or 1, PRIVATE_CHANNEL, pckt)
+    debugPrint("Responded to S_H from switch " .. tostring(packet.src) .. " with IP " .. routerIP)
 end
 
 -- FORWARDING & PACKET HANDLING
@@ -185,32 +199,63 @@ local function forwardPacket(packet, incomingSide)
     packet.ttl = (packet.ttl or DEFAULT_TTL) - 1
     if packet.ttl <= 0 then return end
 
+    local dstSide
+    local dstCh = 1
+    if hosts[packet.dst] then
+    	dstSide = hosts[packet.dst]
+        dstCh = knownChannels[dstSide] or 1
+    end
     local payload = packet.payload
 
     -- If packet has table payload, process known types first (so router learns any necessary info)
     if type(payload) == "table" then
         if payload.type == "HELLO_REPLY" then
-            -- learn the host immediately
-            learnHostRoute(packet.src, incomingSide)
-            return
-        elseif payload.type == "HELLO_REQUEST" then
-            -- reply back to requester on same side it came from
-            local reply = { uid = makeUID(), src = routerIP, dst = packet.src, ttl = DEFAULT_TTL, payload = { type = "HELLO_REPLY" } }
-            interfaces[incomingSide].transmit(1,1,reply)
-            debugPrint("Replied to HELLO_REQUEST from "..packet.src)
-            -- also broadcast the HELLO_REQUEST to other sides (so other networks can see it)
-            broadcastOnAllExcept(incomingSide, packet)
-            return
-        elseif payload.type == "PING" then
-            if packet.dst == routerIP then
-            	local reply = { uid = makeUID(), src = routerIP, dst = packet.src, ttl = DEFAULT_TTL, payload = { type = "PING_REPLY", 					message = "pong" } }
-            	interfaces[incomingSide].transmit(1,1,reply)
-            	logInfo("Replied to PING from "..packet.src)
-             else
-             	--contiue with forwarding logic
-             end
+        -- Learn route + store sender's private channel
+        learnHostRoute(packet.src, incomingSide)
+        if payload.private_channel and not knownChannels[incomingSide] then
+                knownChannels[incomingSide] = payload.private_channel
+                debugPrint("Learned private channel "..payload.private_channel.." for "..packet.src)
         end
-    end
+        return
+        elseif payload.type == "S_H" then --Switch hello packet for switch discovery
+			switchReply(incomingSide,packet)
+            knownChannels[incomingSide] = payload.private_channel --Switch Channel WILL override any previous entries
+            debugPrint("Learned private channel "..payload.private_channel.." for switch "..payload.private_channel)
+            debugPrint("Switch takes priority overriding previous channel for side: "..incomingSide)
+            return
+		elseif payload.type == "HELLO_REQUEST" then
+        	-- Learn the private_channel from the sender (if this came from another router)
+        	if payload.private_channel and not knownChannels[incomingSide] then
+                knownChannels[incomingSide] = payload.private_channel
+                debugPrint("Discovered router "..packet.src.." on channel "..payload.private_channel)
+        	end
+        	-- Reply back including this router’s channel
+        	local replyPayload = {
+         	       type = "HELLO_REPLY",
+         	       private_channel = PRIVATE_CHANNEL
+        	}
+        	local reply = {
+         	       uid = makeUID(),
+            	    src = routerIP,
+                	dst = packet.src,
+               		ttl = DEFAULT_TTL,
+                	payload = replyPayload
+        	}
+        	-- Transmit back using sender’s known channel if available, else broadcast
+        	interfaces[incomingSide].transmit(dstCh, PRIVATE_CHANNEL, reply)
+        	debugPrint("Replied to HELLO_REQUEST from "..packet.src.." on ch "..dstCh)
+        	return
+
+    	elseif payload.type == "PING" then
+        	if packet.dst == routerIP then
+           		local reply = { uid = makeUID(), src = routerIP, dst = packet.src, ttl = DEFAULT_TTL, payload = { type = "PING_REPLY",				  message = "pong" } }
+            	interfaces[incomingSide].transmit(dstCh,PRIVATE_CHANNEL,reply)
+            	logInfo("Replied to PING from "..packet.src)
+     		else
+             	--contiue with forwarding logic
+     		end
+		end
+end
 
     -- Non-payload or after payload handling: Unicast & Normal forwarding
     -- If destination is broadcast, forward to all other sides
@@ -224,12 +269,12 @@ local function forwardPacket(packet, incomingSide)
         logInfo(("Packet for router: %s"):format(textutils.serialize(packet.payload)))
         return
     end
-
+    
     -- If we know a direct host mapping, send there (avoid sending back to incoming side)
     local targetSide = hosts[packet.dst]
     if targetSide and interfaces[targetSide] then
         if targetSide ~= incomingSide then
-            interfaces[targetSide].transmit(1,1,packet)
+            interfaces[targetSide].transmit(dstCh,PRIVATE_CHANNEL,packet)
             return
         else
             -- if target is on incoming side, nothing to do (already on that side)
@@ -241,7 +286,7 @@ local function forwardPacket(packet, incomingSide)
     for subnet, side in pairs(routingTable) do
         if matchSubnet(packet.dst, subnet) and interfaces[side] then
             if side ~= incomingSide then
-                interfaces[side].transmit(1,1,packet)
+                interfaces[side].transmit(dstCh,PRIVATE_CHANNEL,packet)
             end
             return
         end
@@ -249,7 +294,7 @@ local function forwardPacket(packet, incomingSide)
 
     -- Fallback: default route if available
     if defaultRoute and interfaces[defaultRoute] and defaultRoute ~= incomingSide then
-        interfaces[defaultRoute].transmit(1,1,packet)
+        interfaces[defaultRoute].transmit(dstCh,PRIVATE_CHANNEL,packet)
         return
     end
 
@@ -260,12 +305,22 @@ end
 -- PERIODIC TASKS
 local function periodicHelloCheck()
     while not terminated do
-        local packet = { uid = makeUID(), src = routerIP, dst = "0", ttl = DEFAULT_TTL, payload = { type = "HELLO_REQUEST" } }
+        local packet = {
+    		uid = makeUID(),
+    		src = routerIP,
+    		dst = "0",
+    		ttl = DEFAULT_TTL,
+    		payload = {
+        		type = "HELLO_REQUEST",
+        		private_channel = PRIVATE_CHANNEL
+    		}
+		}
+
         for side, modem in pairs(interfaces) do modem.transmit(1,1,packet) end
 
         local now = os.clock()
         for host, t in pairs(lastSeen) do
-            if now - t > HELLO_INTERVAL then
+            if now - t > (HELLO_INTERVAL*2) then
                 logInfo("Host timed out: "..host)
                 hosts[host] = nil
                 lastSeen[host] = nil
@@ -283,6 +338,7 @@ local function printHelp()
     print([[Router Commands:
   show routes
   show hosts
+  show channels
   ip set <ip>
   add route <subnet> <side>
   del route <subnet>
@@ -303,7 +359,7 @@ local function cli()
         else
             print("Access granted. Router CLI started.")
             while true do
-                io.write("(router)> ")
+                io.write("(Router)> ")
                 local line = read()
                 if not line then break end
                 local cmd,arg1,arg2,arg3 = line:match("^(%S+)%s*(%S*)%s*(%S*)%s*(%S*)$")
@@ -322,7 +378,8 @@ local function cli()
                 elseif cmd=="show" then
                     if arg1=="routes" then for s,t in pairs(routingTable) do print(s.." -> "..t) end
                     elseif arg1=="hosts" then for h,s in pairs(hosts) do print(h.." -> "..s) end
-                    else print("Usage: show routes | show hosts") end
+                    elseif arg1=="channels" then for ip,ch in pairs(knownChannels) do print(ip.." -> "..ch) end
+                    else print("Usage: show routes | show host | show channels") end
                 elseif cmd=="ip" and arg1=="set" and arg2~="" then
                     routerIP = arg2
                     updateIPFile()
@@ -372,5 +429,13 @@ end
 
 ensureStartup()
 
+local function cleanupSeenUIDs()
+    while not terminated do
+        seen = {}  -- simply clear the table
+        debugPrint("Cleared seen UID cache")
+        os.sleep(300) -- every 5 minutes (300 seconds)
+    end
+end
+
 -- STARTUP
-parallel.waitForAny(listener, cli, periodicHelloCheck)
+parallel.waitForAny(listener, cli, periodicHelloCheck, cleanupSeenUIDs)
