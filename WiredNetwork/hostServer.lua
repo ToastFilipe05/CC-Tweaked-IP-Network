@@ -1,11 +1,10 @@
--- hostServer.lua Version 1.1
+-- hostServer.lua Version 1.2
 -- Central host registry server that distributes hosts.txt via diff updates
 -- Sends full update on boot and diffs every change; periodic broadcast every 10 minutes
--- Forge-safe multishell self-launch included
+-- compatible with multi-channel system
+-- compatible with switch 2.0 discovery system
 
--- ==========================
--- SELF-LAUNCH IN MULTISHELL (Forge-safe)
--- ==========================
+-- SELF-LAUNCH IN MULTISHELL
 if type(multishell) == "table" and type(multishell.getCurrent) == "function" then
     local currentProgram = shell.getRunningProgram()
     if multishell.getCurrent() == 1 then
@@ -14,17 +13,44 @@ if type(multishell) == "table" and type(multishell.getCurrent) == "function" the
     end
 end
 
--- ==========================
+ -- DEBUG MODE
+local DEBUG = false
+local function debugPrint(msg)
+    if DEBUG then print("[DEBUG] " .. msg) end
+end
+
 -- CONFIG
--- ==========================
-local modemSide = "back"
-local modem = peripheral.wrap(modemSide)
+
+local modem, modemSide
+for _, side in ipairs({"left", "right", "top", "bottom", "front", "back"}) do
+    local p = peripheral.wrap(side)
+    if p and peripheral.getType(side) == "modem" then
+        modem = p
+        modemSide = side
+        break
+    end
+end
+ 
+if not modem then
+    term.setTextColor(colors.red)
+    print("No modem detected on any side. Please attach a modem and restart.")
+    term.setTextColor(colors.white)
+    return
+else
+    term.setTextColor(colors.green)
+    print("Modem found on side: "..modemSide)
+    term.setTextColor(colors.white)
+end
+ 
+local PRIVATE_CHANNEL = os.getComputerID()
 modem.open(1)
+modem.open(PRIVATE_CHANNEL)
 
 local HOSTS_MASTER_FILE = "hosts_master.txt" -- persisted master table
 local BROADCAST_INTERVAL = 600 -- 10 minutes in seconds
 local serverIPFile = "ip.txt"
 local serverIP
+local routerChannel = 1
 
 -- load or create IP
 if not fs.exists(serverIPFile) then
@@ -99,13 +125,11 @@ local function makeDiff(oldHosts, newHosts)
     return diff
 end
 
--- ==========================
 -- NETWORK HELPERS
--- ==========================
 local seq = 0
 local function makeUID()
     seq = seq + 1
-    return tostring(os.time()).."-"..tostring(seq)
+    return tostring(seq).."-"..tostring(os.getComputerID())
 end
 
 local function broadcastAll(payload)
@@ -115,12 +139,38 @@ end
 
 local function sendDirect(dst, payload)
     local packet = { uid = makeUID(), src = serverIP or "0", dst = dst, ttl = 8, payload = payload }
-    modem.transmit(1,1,packet)
+    modem.transmit(routerChannel, PRIVATE_CHANNEL, packet)
 end
 
--- ==========================
 -- HANDLERS
--- ==========================
+
+local function replyHello(requester)
+    if not serverIP then return end
+    sendDirect(requester, { type="HELLO_REPLY", private_channel = PRIVATE_CHANNEL })
+    debugPrint("Replied to HELLO_REQUEST from "..requester)
+end
+
+local function replySwitch(side, packet)
+    local payload = packet.payload
+    -- Only respond if this is a switch hello from a switch
+    if not payload.switch then return end
+    -- Make sure the client has an IP
+    if not serverIP then
+        debugPrint("Received S_H from switch but server IP is not set, ignoring.")
+        return
+    end
+    -- Respond to switch with our IP and private channel
+    local response = {
+        type = "S_H",
+        switch = false,          -- client, not a switch
+        src_ip = serverIP,
+        private_channel = PRIVATE_CHANNEL -- or whatever channel we learned from HELLO
+    }
+	routerChannel = payload.private_channel --Will ALWAYS override the router channel to account for network expansion
+    -- Send back to the switch using the port we received from
+    sendDirect(packet.src, response)
+    debugPrint("Responded to S_H from switch " .. tostring(packet.src) .. " with IP " .. serverIP)
+end
 -- On boot broadcast full hosts
 local function broadcastFullHosts()
     -- send full table in UPDATE_HOSTS
@@ -144,9 +194,7 @@ local function handleRequestHosts(src)
     print("Sent full hosts to "..src)
 end
 
--- ==========================
 -- PACKET RECEIVE LOOP
--- ==========================
 local function receiveLoop()
     while true do
         local e, side, ch, reply, message, dist = os.pullEvent("modem_message")
@@ -159,12 +207,22 @@ local function receiveLoop()
                     -- reply to discovery: HOST_SERVER_HERE
                     local server_ip = serverIP or (hosts and (next(hosts) and (hosts[next(hosts)].ip) or nil) )
                     if server_ip then
-                        sendDirect(message.src, { type = "HOST_SERVER_HERE", server_ip = server_ip })
+                        sendDirect(message.src, { type = "HOST_SERVER_HERE", server_ip = server_ip, private_channel = PRIVATE_CHANNEL })
                         print("Replied HOST_SERVER_HERE to "..message.src)
                     end
                 elseif payload.type == "REQUEST_HOSTS" then
                     -- direct request for full data
                     handleRequestHosts(message.src)
+                elseif payload.type == "HELLO_REQUEST" then
+                if routerChannel == 1 or routerChannel == nil then --Makes sure that a switch isn't in between ruter and device
+                    if payload.private_channel and type(payload.private_channel) == "number" then
+                    	routerChannel = payload.private_channel
+                    	debugPrint("Learned router channel: " .. routerChannel)
+                	end
+                end
+                replyHello(message.src)
+                elseif payload.type == "S_H" then --Switch hello packet for switch discovery
+					replySwitch(modemSide, message)
                 else
                     -- ignore other types
                 end
@@ -186,6 +244,7 @@ local function printHelp()
   setip <ip>
   exit
   help
+  debugmode
 ]])
 end
 
@@ -247,6 +306,17 @@ local function cliLoop()
             else print("Usage: setip <ip>") end
         elseif cmd == "ip" then
             print("Server IP: "..tostring(serverIP))
+        elseif cmd == "debugmode" then
+           	local tf = rest:match("^(%S+)")
+            if tf == "true" then
+                DEBUG = true
+                print("Debug mode enabled")
+            elseif tf == "false" then
+                DEBUG = false
+                print("Debug mode disabled")
+            else
+                print("unrecognized, 'true' or 'false'.")
+            end
         else
             print("Unknown command. Type 'help'.")
         end
@@ -270,4 +340,22 @@ end
 -- ==========================
 -- START SERVER
 -- ==========================
+
+-- autostart setup
+local function ensureStartup()
+    local startupContent = ""
+    if fs.exists("startup") then
+        local f = fs.open("startup","r")
+        startupContent = f.readAll()
+        f.close()
+    end
+    if not startupContent:match("shell%.run%(\'hostServer.lua\'%)") then
+        local f = fs.open("startup","a")
+        f.writeLine("shell.run('hostServer.lua')")
+        f.close()
+    end
+end
+
+ensureStartup()
+
 parallel.waitForAny(receiveLoop, cliLoop, periodicBroadcast)
