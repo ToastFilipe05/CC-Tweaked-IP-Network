@@ -1,1 +1,6 @@
+The Host Server is setup by giving it a IP address and then adding host name translations
+
+Set the IP with the 'setip' command
+Add hosts with the 'addhost' command (ex. addhost DargIncFileServer 201.200.40.1 DargInc FTPSVR)
+Hosts is very similar to DNS and can even be used the same way (ex. addhost DargInc.com/FTP 201.200.40.1 DargInc FTPSVR | and | DargInc.com/Bank 201.200.40.2 DargInc BANKSVR)
 
