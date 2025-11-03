@@ -1,1 +1,11 @@
+The File Server is useful for transfering files that need to be distributed among many different clients
 
+The File Server is set up by first setting up the IP address
+If you aren't the ISP in your world then ask for a server IP from the ISP
+If you are the ISP the server IP should be 201.200._._
+
+Next you need to make a password for the File Server
+if you want to make the file server public you just 
+need to restart the device without setting a password
+
+ONLY FILES FOUND IN THE '/files/' DIRECTORY CAN BE TRANSFERRED (this is automatically created on startup)
