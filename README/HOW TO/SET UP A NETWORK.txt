@@ -47,24 +47,41 @@ and that Office 5-7  are on the left modem, but the Main Network Router would on
 to know Office 1-4's associated modems, same applies to the other Main Network Router
 Endpoint routers only have to know their directly connected subnets
 
-Central router's do not have any default route Unless you split your network in two 
-halfs where you have two central routers that know each of their own sides basically 
-making them act as two Main Network Routers treating each other as the central router
+Central router's do not have any default route but you could make a Central Network something like this
+
+        City 1                          City 2                                                                    City 3                            City 4
+          |                                |                                                                         |                                  |
+Central Network Router --------- Central Network Router --------- True Central Network Router --------- Central Network Router --------- Central Network Router
+          |                                |                                                                        |                                  |
+        City 5                         City 6                                                                      City 7                          City 8
+
+The True Central Network Router will know all networks connected to your overall network you could make a "Second" Central network where the two True Central Network Routers are connected and are each other's default routes
+
+One day I might impliment a NAT solution to make this Central Router less of a need, but for now this is the most complex large networking available
 
 Endpoint and Main Network Routers do have a default route that points 
-toward the central router who will know where to send the packet
+toward the central router/network who will know where to send the packet
 or if they should just drop the unknown address
 
-So when making your network find your Central Router and add routes to every 
-subnet that connects in any way to the central router, next on your 
+So when making your network find your Central Router/Network and add routes to every 
+subnet that connects in any way to the central router/network, next on your 
 Main Network Routers add all the subnets that are on that side 
 of the connected central router and set the default route toward the Central Router
+The farther away from the central router they are the less subnets they need to know For example a 
+Main Network Router that is 5 router away from the central router only needs to know the subnets 
+"downstream" of it and can just use the default route for unknown subnets AKA the ones "upstream"
+While the Main Network Router that is just 2 routers away from the central router needs to know all
+almost half of the subnets that the Central router does
 
 Endpoint routers just need a default route and they should be completely set up
 
-Switches are instantly set up once you start them and enter a side (this is for default route) (this is being changed)
+Switches are set up once you first have the rest of the network set up then boot the switch, after that you need to input 
+the command 'default route <side> <Channel of connected device on side>' then it is set up completely, if you accidently booted
+the switch before all connected devices you can run the 'discover' command to make it learn about the connected devices
+the switches are made like this to avoid clog since routers already constantly discover hosts and switches are supposed to be
+as lightweight as possible in this networking protocol
 
-Servers are variable and set up most of the time like a client check their specific HOW TO file for more info
+Servers are variable and set up, most of the time, like a client check their specific HOW TO file for more info
 
 Clients only need you to set an IP address and it should try to follow the 192.168._._ format, otherwise it might mess something up
 
@@ -73,10 +90,18 @@ Routers always start with 10.10.10 and the last number is decieded with their co
 Servers always follow the 201.200._._ format (manual)
 Switches never have an IP as they only forward packets to learned hosts and through the default route (manual)
 
-The network admin (You most likely) should always keep track of the IP addressing so they don't accidently overlap with other existing IP addresses this could seriously mess up your network and even cause snooping, if you want 100% certainty that snooping doesn't occur always use Endpoint Routers and never connect networks directly to Main Network Routers, this means that even if someone has changed their IP to try and snoop they can't because the Main Network Router will always route to the set route of that IP 
-(ex. snooper wants to see traffic meant for 192.178.14.12 but you set all networks connected to Endpoint Routers and the snooper is connected to its original network of 192.168.10, the Main Network Router only knows that the Endpoint router has the 192.186.10 network not the 192.178.14 network so that traffic is never sent instead the snooper can't get any traffic outside it's Endpoint Router)
+The network admin (You most likely) should always keep track of the IP addressing so they don't accidently overlap with
+other existing IP addresses this could seriously mess up your network and even cause snooping, if you want 100% certainty
+that snooping doesn't occur always use Endpoint Routers and never connect networks directly to Main Network Routers, this 
+means that even if someone has changed their IP to try and snoop they can't because the Main Network Router will always route 
+to the set route of that IP (ex. snooper wants to see traffic meant for 192.178.14.12 but you set all networks 
+connected to Endpoint Routers and the snooper is connected to its original network of 192.168.10, the Main Network Router only 
+knows that the Endpoint router has the 192.186.10 network not the 192.178.14 network so that traffic is never sent instead the 
+snooper can't get any traffic outside it's Endpoint Router)
 
-You can make your own IP addressing formats to use it doesn't matter for the wired network at all as long as it follows the _._._._ format nothing else matters to the .lua code
+You can make your own IP addressing formats to use, it doesn't matter for 
+the wired network at all, as long as it follows 
+the _._._._ format nothing else matters to the code
 
 To use a different IP addressing format on wireless however you would have to change some of the code where it detects nearby cell towers, otherwise it should be fine
 
