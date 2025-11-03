@@ -1,20 +1,29 @@
---TO INSTALL RUN "pastebin get cYVhLAtp updater.lua" ON SHELL
 local run = true
 
 local function routerUpdater()
-    if fs.exists("router.lua") then
+    if fs.exists("router.lua")then
         fs.delete("router.lua")
-        print("Deleted old router.lua)
+        print("Deleted old router.lua")
     else
-        print("router.lua not found. Installing router.lua)
+        print("router.lua not found. Installing router.lua")
     end
 
     shell.run("pastebin get jR4Aibrh router.lua")
-    print("Downloaded latest router.lua)
-				term.setTextColor(colors.yellow)
+    print("Downloaded latest router.lua")
     print("Routers can also be run with servers installed. Please update any server files on device.")
-				term.setTextColor(colors.white)
 
+    run = false
+end
+
+local function cellTowerUpdater()
+    if fs.exists("cellTower.lua") then
+        fs.delete("cellTower.lua")
+        print("Deleted old celTower.lua")
+    else
+        print("cellTower.lua not found installing cellTower.lua")
+    end
+    shell.run("pastebin get Ys872m66 cellTower.lua")
+    print("Downloaded latest cellTower.lua")
     run = false
 end
 
@@ -27,6 +36,18 @@ local function clientUpdater()
 	end
 	shell.run("pastebin get U9VVPEzW client.lua")
 	print("Downloaded latest client.lua")
+    run = false
+end
+
+local function wirelessClientUpdater()
+	if fs.exists("wirelessClient.lua") then
+    	fs.delete("wirelessClient.lua")
+    	print("Deleted old wirelessClient.lua")
+	else
+	    print("wirelessClient.lua not found installing wirelessClient.lua")
+	end
+	shell.run("pastebin get QQAqGvFw wirelessClient.lua")
+	print("Downloaded latest wirelessClient.lua")
     run = false
 end
 
@@ -83,7 +104,7 @@ local function cliLoop()
     print("UPDATER MUST BE RAN IN SAME DIR AS FILE YOU WANT TO UPDATE")
     term.setTextColor(colors.white)
     print("Updater ready. Command arguments:")
-    print("update <router,client,switch,fileServer,hostServer>")
+    print("update <router,client,switch,fileServer,hostServer,updater,cellTower,wirelessClient>")
     while run do
        	term.setTextColor(colors.yellow)
         io.write("> ")
@@ -93,25 +114,26 @@ local function cliLoop()
         local args = {}
         for word in line:gmatch("%S+") do table.insert(args, word) end
         local cmd = args[1]
-        if cmd=="update" then
-            		local arg1 = args[2]
-                    if arg1=="router" then
-                		routerUpdater()
-                    elseif arg1=="client" then
-                		clientUpdater()
-                	elseif arg1=="switch" then
-                		switchUpdater()
-                	elseif arg1=="fileServer" then
-                		fileServerUpdater()
-                	elseif arg1=="hostServer" then
-                		hostServerUpdater()
-                	elseif arg1=="updater" then
-                        Updater()
-                    else
-                		print("Usage: update router | update client | update switch | update fileServer | update hostServer") 
-            		end
+        if cmd=="router" then
+       		routerUpdater()
+        elseif cmd=="client" then
+       		clientUpdater()
+		elseif cmd=="wirelessClient" then
+        		wirelessClientUpdater()
+        elseif cmd=="switch" then
+            switchUpdater()
+        elseif cmd=="fileServer" then
+            fileServerUpdater()
+        elseif cmd=="hostServer" then
+            hostServerUpdater()
+		elseif cmd=="cellTower" then
+            cellTowerUpdater()
+        elseif cmd=="updater" then
+            Updater()
+        elseif cmd=="quit" then
+            run = false
         else
-        	print("NO OTHER COMMANDS AVAILBLE MUST BE: update <file>")
+           	print("Usage: router | client | switch | fileServer | hostServer | updater | cellTower | wirelessClient | quit") 
         end
     end
 end
