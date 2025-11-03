@@ -1,1 +1,5 @@
+Clients are the most simple to set up in a network, but the most complex under the hood (other than routers and very few servers)
 
+Clients are able to send pings, request files, and undergo host name translations
+These are for the basic client in the future there will be many more commands and
+capabilites of these clients, such as secure direct messages, banking over IP, peer-to-peer FTP, and more
