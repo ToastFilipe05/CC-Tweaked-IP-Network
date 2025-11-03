@@ -1,11 +1,17 @@
-These files are not the same across pastebin and github
+Synced Across Pastebin and Github
 
-Client.lua (Pastebin version untested)
-HostServer.lua (Pastebin version untested)
-FileServer.lua (Pastebin version untested)
+Updater.lua
+FileServer.lua
+HostServer.lua
+Client.lua 
+Router.lua
+Switch.lua
+
+These files are not the same across Pastebin and Github
+
 wirelessClient.lua (Pastebin version untested)
 cellTower.lua (Pastebin version untested)
-Updater.lua (Pastebin version untested, but most likely works perfectly)
+
 
 You can find all of these files from updater.lua, I think, worst case senario use this command and you can
 
