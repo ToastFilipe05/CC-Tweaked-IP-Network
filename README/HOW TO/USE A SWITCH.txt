@@ -1,1 +1,8 @@
+Simplest to set up just add a default route with the channel of the connected device 
+(The channel is equal to the computer ID of the device, ex. routers ip is 10.10.10.<ComputerID> 
+so the channel for 10.10.10.5 would be 5)
 
+'discover' command is to re-discover connected devices since switches do NOT automatically discover periodically
+only on boot
+
+'show' is to show currently connected devices
