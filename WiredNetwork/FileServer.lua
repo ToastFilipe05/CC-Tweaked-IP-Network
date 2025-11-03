@@ -1,7 +1,8 @@
--- fileServer.lua Version 1.31
+-- fileServer.lua Version 1.4
 -- CC:Tweaked server for file sharing with password protection
 -- Uses HELLO_REPLY only, auto IP and password files, restricts transfers to /files/
 -- Added automatic multishell self-launch
+-- Added ACK packets to ensure connections and for less clog in terminal with debug mode disabled
 
 -- ==========================
 -- SELF-LAUNCH IN MULTISHELL
@@ -26,9 +27,30 @@ end
 -- ==========================
 -- ORIGINAL FILE SERVER CODE STARTS HERE
 -- ==========================
-local modemSide = "back"
-local modem = peripheral.wrap(modemSide)
+local modem, modemSide
+for _, side in ipairs({"left", "right", "top", "bottom", "front", "back"}) do
+    local p = peripheral.wrap(side)
+    if p and peripheral.getType(side) == "modem" then
+        modem = p
+        modemSide = side
+        break
+    end
+end
+ 
+if not modem then
+    term.setTextColor(colors.red)
+    print("No modem detected on any side. Please attach a modem and restart.")
+    term.setTextColor(colors.white)
+    return
+else
+    term.setTextColor(colors.green)
+    print("Modem found on side: "..modemSide)
+    term.setTextColor(colors.white)
+end
+ 
+local PRIVATE_CHANNEL = os.getComputerID()
 modem.open(1)
+modem.open(PRIVATE_CHANNEL)
 
 -- CONFIGURATION
 local CHUNK_SIZE = 512
@@ -39,14 +61,17 @@ local FILE_DIR = "/files/"
 -- STATE
 local hosts = {}
 local myIP
-local SERVER_PASSWORD
+local SERVER_PASSWORD 
+local routerChannel = 1
 
 -- LOAD OR CREATE IP
 if not fs.exists(IP_FILE) then
     local f = fs.open(IP_FILE,"w")
     f.writeLine("")
     f.close()
-    print(IP_FILE.." created. Use CLI command 'set ip <ip>' to assign IP before networking.")
+    term.setTextColor(colors.red)
+    print(IP_FILE.." created. Use CLI command 'set ip <ip>' to assign IP")
+    term.setTextColor(colors.white)
     myIP = nil
 else
     local f = fs.open(IP_FILE,"r")
@@ -66,13 +91,14 @@ if not fs.exists(PASSWORD_FILE) then
     local f = fs.open(PASSWORD_FILE,"w")
     f.writeLine("")
     f.close()
-    print(PASSWORD_FILE.." created. Use CLI command 'set password <password>' to assign a server password.")
+    term.setTextColor(colors.red)
+    print(PASSWORD_FILE.." created. Use CLI command 'set password <password>' to assign a server password. IF NOT SET FILE SERVER WILL NOT WORK; TO MAKE PUBLIC RESTART DEVICE AND DO NOT SET PASSWORD")
+    term.setTextColor(colors.white)
     SERVER_PASSWORD = nil
 else
     local f = fs.open(PASSWORD_FILE,"r")
     SERVER_PASSWORD = f.readLine()
     f.close()
-    if SERVER_PASSWORD=="" then SERVER_PASSWORD=nil end
 end
 
 local function savePassword()
@@ -97,7 +123,7 @@ end
 local seq = 0
 local function makeUID()
     seq = seq + 1
-    return tostring(os.time()).."-"..tostring(seq)
+    return tostring(seq).."-"..tostring(os.getComputerID())
 end
 
 local function sendPacket(dst,payload)
@@ -111,21 +137,49 @@ local function sendPacket(dst,payload)
         return
     end
     local packet = { uid=makeUID(), src=myIP, dst=resolved, ttl=8, payload=payload }
-    modem.transmit(1,1,packet)
+    modem.transmit(routerChannel, PRIVATE_CHANNEL, packet)
 end
 
 -- HELLO_REPLY
-local function replyHello(requester)
+local function replyHello(requester, private_channel)
     if not myIP then return end
-    sendPacket(requester,{ type="HELLO_REPLY" })
+    sendPacket(requester,{
+        type = "HELLO_REPLY",
+        private_channel = PRIVATE_CHANNEL
+    })
     debugPrint("Replied to HELLO_REQUEST from "..requester)
+    if private_channel and routerChannel == 1 then
+        routerChannel = private_channel
+        debugPrint("Router channel set to "..routerChannel)
+    end
 end
 
+local function switchReply(side, packet)
+    local payload = packet.payload
+    -- Only respond if this is a switch hello from a switch
+    if not payload.switch then return end
+    -- Make sure the client has an IP
+    if not myIP then
+        debugPrint("Received S_H from switch but server IP is not set, ignoring.")
+        return
+    end
+    -- Respond to switch with our IP and private channel
+    local response = {
+        type = "S_H",
+        switch = false,          -- client, not a switch
+        src_ip = myIP,
+        private_channel = PRIVATE_CHANNEL -- or whatever channel we learned from HELLO
+    }
+	routerChannel = payload.private_channel --Will ALWAYS override the router channel to account for network expansion
+    -- Send back to the switch using the port we received from
+    sendPacket(packet.src, response)
+    debugPrint("Responded to S_H from switch " .. tostring(packet.src) .. " with IP " .. myIP)
+end
 -- FILE TRANSFER FUNCTIONS
 local function sendFile(dst, filename)
     local fullPath = FILE_DIR..filename
     if not fs.exists(fullPath) then
-        print("File does not exist in "..FILE_DIR..": "..filename)
+        debugPrint("File does not exist in "..FILE_DIR..": "..filename)
         return
     end
 
@@ -139,12 +193,12 @@ local function sendFile(dst, filename)
         table.insert(chunks,chunk)
     end
 
-    print("Sending file "..filename.." to "..dst.." in "..#chunks.." chunks")
+    debugPrint("Sending file "..filename.." to "..dst.." in "..#chunks.." chunks")
     for i,chunk in ipairs(chunks) do
         sendPacket(dst,{ type="FILE_CHUNK", filename=filename, seq=i, total=#chunks, data=chunk })
     end
     sendPacket(dst,{ type="FILE_END", filename=filename })
-    print("File "..filename.." sent successfully")
+    print("File "..filename.." sent successfully to " .. dst)
 end
 
 -- RECEIVE LOOP
@@ -154,22 +208,31 @@ local function receiveLoop()
         if type(message)=="table" and myIP and (message.dst==myIP or message.dst=="0") then
             local payload = message.payload
             if type(payload)~="table" then
-                print("Invalid payload from "..tostring(message.src))
+                debugPrint("Invalid payload from "..tostring(message.src))
             else
-                if payload.type=="HELLO_REQUEST" then
-                    replyHello(message.src)
-                elseif payload.type=="FILE_REQUEST" then
+                if payload.type == "HELLO_REQUEST" then
+                    replyHello(message.src, payload.private_channel)
+                elseif payload.type == "S_H" then
+                    switchReply(side,message)
+                    routerChannel = payload.private_channel -- Always overrides previous routerchannel to make network expansion easier
+                elseif payload.type == "ACK_START" then
                     if not SERVER_PASSWORD then
                         print("No server password set. Cannot process file requests.")
-                    elseif payload.password==SERVER_PASSWORD then
-                        print("Received file request from "..message.src.." for "..payload.filename)
-                        sendFile(message.src,payload.filename)
+                        sendPacket(message.src,{ type="ERROR", message="Server has no password set and is not public" })
+                    elseif payload.password == SERVER_PASSWORD then
+                        debugPrint("ACK received establishing connection to send file")
+                        sendPacket(message.src,{ type="ACK" })
                     else
-                        print("Invalid password from "..message.src.." for "..payload.filename)
+                        debugPrint("Invalid password from "..message.src.." for "..payload.filename)
                         sendPacket(message.src,{ type="ERROR", message="Invalid password" })
                     end
-                elseif payload.type=="PING" then
-                    print("Received PING from "..message.src)
+                elseif payload.type == "FILE_REQUEST" then
+                    term.setTextColor(colors.blue)
+                    print("Connection fully established sending file to " .. message.src)
+                    term.setTextColor(colors.white)
+                    sendFile(message.src,payload.filename)
+                elseif payload.type == "PING" then
+                    debugPrint("Received PING from "..message.src)
                     sendPacket(message.src,{ type="PING_REPLY", message="pong" })
                 else
                     debugPrint(("Message from %s: %s"):format(message.src, textutils.serialize(payload)))
@@ -198,6 +261,12 @@ local function cliLoop()
         elseif cmd=="list" and args[2]=="hosts" then
             print("Known hosts:")
             for k,v in pairs(hosts) do print("  "..k.." -> "..v) end
+        elseif cmd=="debugmode" and args[2] then
+            if args[2] == "true" then
+                DEBUG = true
+           	elseif args[2] == "false" then
+                DEBUG = false
+			end
         else
             print("Commands: set ip <ip>, set password <password>, ip, list hosts, exit")
         end
@@ -205,5 +274,22 @@ local function cliLoop()
 end
 
 -- START SERVER
+-- autostart setup
+local function ensureStartup()
+    local startupContent = ""
+    if fs.exists("startup") then
+        local f = fs.open("startup","r")
+        startupContent = f.readAll()
+        f.close()
+    end
+    if not startupContent:match("shell%.run%(\'fileServer.lua\'%)") then
+        local f = fs.open("startup","a")
+        f.writeLine("shell.run('fileServer.lua')")
+        f.close()
+    end
+end
+
+ensureStartup()
+
 if not fs.exists(FILE_DIR) then fs.makeDir(FILE_DIR) end
 parallel.waitForAny(receiveLoop, cliLoop)
