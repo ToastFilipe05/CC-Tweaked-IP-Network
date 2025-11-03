@@ -1,4 +1,4 @@
--- switch.lua
+-- switch.lua Version 2.0
 -- Optimized Switch with S_H Discovery
 -- Minimal forwarding device that doesn't process many packets (AKA only S_H)
 
