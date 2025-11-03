@@ -1,20 +1,5 @@
-Continue updating to multi-channel system
-I've been lazy to updating the github and I want to make sure everything is compatable before moving over
+Clean-up files
 
-THESE ARE ONLY ON PASTEBIN VERSION CURRENTLY
-current fully integrated devices, with both multi-channel and switch discovery support
-
-switch.lua 
-hostServer.lua (if you want this has packet handling for S_H packets (switch hello) you could just copy and paste under the right places in other files)
-client.lua
-router.lua
-
-devices that have multi-channel support, but not integrated with new switch discovery
-
-fileServer.lua
-
-devices that have no multi-channel support and not integrated with new switch discovery
-Wireless devices are getting support last because a bug slowed multi-channel integration
-
-cellTower.lua
-wirelessClient.lua
+Generalize everything from when I didn't know much of lua to my preffered meathods across all files (AKA CLI inconsistancies)
+Better generalized variables for better readability
+General clean up of comments and better summaries at the top of each file
