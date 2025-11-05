@@ -1,0 +1,57 @@
+Make a denial of routing configuration
+
+steps:
+
+1: Make a configuration variables called denySrc, denyDst, whLst, and blkLst
+2: Make a denyList array variable that will hold IP addresses and IP Subnets that can be checked later on
+3: 
+    3.a: Make a if statement that checks if denySrc is true and if statement that checks if denyDst is true
+    3.b: Make both if statements look to see weather the whLst or blkLst is true
+    3.c: Check the incoming src or dst matches any entries in associated list with a for loop
+    3.d If they match in whitelist they are allowed to continue otherwise they are dropped
+    3.e If they match in blacklist they are dropped otherwise they continue
+4: Make CLI configuration of Denial of routing with commands as follows
+    'deny routes enable <src,dst>' - sets either denySrc or denyDst to true (Both could be true)
+    'denylist is white' - sets whLst to true and makes sure blkList is false
+    'denylist is black' - sets blkLst to true and makes sure whLst is false
+    'add denylist <IP Address or subnet>' - adds a subnet or IP address to denyList
+    'remove denylist <IP Address or subnet> ' - removes a subnet or IP address from whitelist
+    'show <denyList>' - shows whitelist or blacklist entries
+    'clear <denyList>' - clears whitelist or blacklist entries
+
+
+potential code for each step:
+
+1:
+local denySrc = false
+local denyDst = false
+local whLst = false
+local blkLst = false
+2:
+local denyList = {}
+3:
+local function listener()
+    while not terminated do
+        local e, side, ch, reply, msg, dist = os.pullEvent("modem_message")
+        if interfaces[side] and type(msg)=="table" and msg.uid then
+          if denySrc == true then
+            if whLst == true then
+              for entr in denyList do
+                if entr.match then --I know this does not work just using as placeholder
+                  forwardPacket(msg, side)
+                end
+              end
+              return
+            elif blkLst == true then
+              for entr in denyList do
+                if entr.match then --Same here
+                  return
+                end
+              end
+              forwardPacket(msg, side)
+            end
+        end
+    end
+end
+4:
+  
