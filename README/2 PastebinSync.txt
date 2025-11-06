@@ -8,17 +8,23 @@ Router.lua
 Switch.lua
 WirelessClient.lua (Untested)
 CellTower.lua (Untested)
+TrafficlightController/Node.lua
 
 These files are not the same across Pastebin and Github
 
 N/A
 
-You can find all of these files from updater.lua, I think, worst case senario use this command and you can
+You can find all of these files from updater.lua, worst case senario use this command and you can
 
 pastebin get cYVhLAtp updater.lua
 
 then you should have access to all the latest versions of the files (THESE FILES CAN SOMETIMES BE BUGGY SINCE THEY ARE THE LATEST VERSION 
 AND SOMETIMES NOT FULLY FUNCTIONAL, DON'T REPORT BUGS IN THIS VERSION)
 
-if you want a fully functional experience right now the wired network is fully functional albeit kinda early with functionallity in my opinion, wireless network
-is not in the best condition and I'm not ready to publicly release it
+If you don't like using the pastebin over and over you can access computer's and disks directly in your world by going into your minecraft location then 
+/saves/yoursave/computercraft/computers or /computercraft/disks the ID's match folder names you can just paste the files from github into those locations and
+even edit them directly
+
+Wired Network is fully functional when it comes to infrastructure, I still want to upgrade certian parts with better security and configuration
+
+wireless network is not in the best condition and is still untested
