@@ -6,12 +6,12 @@ HostServer.lua
 Client.lua 
 Router.lua
 Switch.lua
+WirelessClient.lua (Untested)
+CellTower.lua (Untested)
 
 These files are not the same across Pastebin and Github
 
-wirelessClient.lua (Pastebin version untested)
-cellTower.lua (Pastebin version untested)
-
+N/A
 
 You can find all of these files from updater.lua, I think, worst case senario use this command and you can
 
