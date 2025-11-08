@@ -1,5 +1,3 @@
-local run = true
-
 local function routerUpdater()
     if fs.exists("router.lua")then
         fs.delete("router.lua")
@@ -11,8 +9,6 @@ local function routerUpdater()
     shell.run("pastebin get jR4Aibrh router.lua")
     print("Downloaded latest router.lua")
     print("Routers can also be run with servers installed. Please update any server files on device.")
-
-    run = false
 end
 
 local function cellTowerUpdater()
@@ -24,7 +20,6 @@ local function cellTowerUpdater()
     end
     shell.run("pastebin get Ys872m66 cellTower.lua")
     print("Downloaded latest cellTower.lua")
-    run = false
 end
 
 local function clientUpdater()
@@ -36,7 +31,6 @@ local function clientUpdater()
 	end
 	shell.run("pastebin get U9VVPEzW client.lua")
 	print("Downloaded latest client.lua")
-    run = false
 end
 
 local function wirelessClientUpdater()
@@ -48,7 +42,6 @@ local function wirelessClientUpdater()
 	end
 	shell.run("pastebin get QQAqGvFw wirelessClient.lua")
 	print("Downloaded latest wirelessClient.lua")
-    run = false
 end
 
 local function switchUpdater()
@@ -60,7 +53,6 @@ local function switchUpdater()
 	end
 	shell.run("pastebin get ajwx98XZ switch.lua")
 	print("Downloaded latest switch.lua")
-    run = false
 end
 
 local function fileServerUpdater()
@@ -72,7 +64,6 @@ local function fileServerUpdater()
 	end
 	shell.run("pastebin get Ld5d5M5M fileServer.lua")
 	print("Downloaded latest fileServer.lua")
-    run = false
 end
 
 local function hostServerUpdater()
@@ -84,7 +75,6 @@ local function hostServerUpdater()
 	end
 	shell.run("pastebin get sy6pUE0Z hostServer.lua")
 	print("Downloaded latest hostServer.lua")
-    run = false
  end
 
 local function Updater()
@@ -96,7 +86,6 @@ local function Updater()
     end
     shell.run("pastebin get cYVhLAtp updater.lua")
     print("Downloaded latest updater.lua")
-    run = false
 end
 
 local function cliLoop()
@@ -105,7 +94,7 @@ local function cliLoop()
     term.setTextColor(colors.white)
     print("Updater ready. Command arguments:")
     print("update <router,client,switch,fileServer,hostServer,updater,cellTower,wirelessClient>")
-    while run do
+    while true do
        	term.setTextColor(colors.yellow)
         io.write("> ")
         term.setTextColor(colors.white)
@@ -116,22 +105,30 @@ local function cliLoop()
         local cmd = args[1]
         if cmd=="router" then
        		routerUpdater()
+			break
         elseif cmd=="client" then
        		clientUpdater()
+			break
 		elseif cmd=="wirelessClient" then
-        		wirelessClientUpdater()
+        	wirelessClientUpdater()
+			break
         elseif cmd=="switch" then
             switchUpdater()
+			break
         elseif cmd=="fileServer" then
             fileServerUpdater()
+			break
         elseif cmd=="hostServer" then
             hostServerUpdater()
+			break
 		elseif cmd=="cellTower" then
             cellTowerUpdater()
+			break
         elseif cmd=="updater" then
             Updater()
+			break
         elseif cmd=="quit" then
-            run = false
+            break
         else
            	print("Usage: router | client | switch | fileServer | hostServer | updater | cellTower | wirelessClient | quit") 
         end
