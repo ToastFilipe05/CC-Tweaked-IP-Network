@@ -59,7 +59,7 @@ modem.open(PRIVATE_CHANNEL)
 local IP_FILE = "ip.txt" -- the name of the IP text file for loading/saving
 local myIP
 local routerChannel = 1
-local SERVERNAME = 'placeholder' -- For ensure startup
+local SERVERNAME = "placeholder.lua" -- For ensure startup replace 'placeholder' with your server's name
 
 -- ==========================
 -- LOAD OR CREATE IP
@@ -201,9 +201,9 @@ local function ensureStartup()
         startupContent = f.readAll()
         f.close()
     end
-    if not startupContent:match("shell%.run%(\SERVERNAME%)") then
+    if not startupContent:match("shell%.run%(\'"..SERVERNAME.."\'%)") then
         local f = fs.open("startup","a")
-        f.writeLine("shell.run(SERVERNAME)")
+        f.writeLine("shell.run('"..SERVERNAME.."')")
         f.close()
     end
 end
