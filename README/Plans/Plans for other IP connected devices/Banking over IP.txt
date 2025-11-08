@@ -3,7 +3,7 @@ with the mod lightman's currency
 
   Make the client.lua have the ability to launch other programs in multi-shell so the bank user program doesn't have to be fully integrated into the client
 
-  Make a bank program that on bootup will contact a server with ip address of 201.200.99.99 and request information from a file that has 
+  Make a bank program that on bootup will contact a server with ip address of 201.200.99.99 (by default) and request information from a file that has 
 account info like account name, money and account ID (6 digit number always starting with 874) the file shouldn't be sent to the computer 
 just information from the file, if the computer can't find a acct.txt file in its dir it should create a acct.txt file and prompt the user for 
 an account name then it sends an c_acct_request to the server, the server should then make a new .txt file with the information from the c_acct_request, 
