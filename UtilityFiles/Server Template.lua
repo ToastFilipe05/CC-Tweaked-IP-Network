@@ -28,7 +28,7 @@ local function debugPrint(msg)
 end
 
 -- ==========================
--- FINDS MODEMS
+-- FINDS MODEMS (can also find other peripherals, just add a new var and a new if for p's type)
 -- ==========================
 local modem, modemSide
 for _, side in ipairs({"left", "right", "top", "bottom", "front", "back"}) do
