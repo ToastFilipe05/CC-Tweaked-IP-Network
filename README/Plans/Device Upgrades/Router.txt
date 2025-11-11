@@ -22,12 +22,12 @@ steps:
 
 potential code for each step:
 
-1:
+1: set vars
 local denySrc = false
 local denyDst = false
 local whLst = false
 local blkLst = false
-2:
+2:set
 local denyList = {}
 3:
 local function listener()
@@ -50,6 +50,10 @@ local function listener()
               end
               forwardPacket(msg, side)
             end
+        elseif denyDst == true then
+           --code matches above
+        else
+             forwardPacket(msg,side)
         end
     end
 end
