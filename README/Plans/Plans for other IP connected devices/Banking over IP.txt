@@ -1,4 +1,6 @@
-  Banking Over IP these plans are very primitive and will be changed because I will be trying to implement some sort of compatability 
+This is long and really messy and I will change a lot of the plans later, but you can torture yourself if you really want by reading this.
+
+Banking Over IP these plans are very primitive and will be changed because I will be trying to implement some sort of compatability 
 with the mod lightman's currency
 
   Make the client.lua have the ability to launch other programs in multi-shell so the bank user program doesn't have to be fully integrated into the client
