@@ -37,14 +37,14 @@ local function listener()
           if denySrc == true then
             if whLst == true then
               for entr in denyList do
-                if entr.match then --I know this does not work just using as placeholder
+                if entr:match() then --I know this does not work just using as placeholder
                   forwardPacket(msg, side)
                 end
               end
               return
             elif blkLst == true then
               for entr in denyList do
-                if entr.match then --Same here
+                if entr:match() then --Same here
                   return
                 end
               end
