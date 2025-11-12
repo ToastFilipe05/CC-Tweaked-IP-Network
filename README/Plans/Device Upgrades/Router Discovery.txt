@@ -1,0 +1,28 @@
+Make it possible for routers to discover neighboring routers and their routes so that a central router isn't always needed
+
+1. set up some configuration variables
+
+RDP=false
+MNR=false
+EPR=false
+
+2. set up CLI for Router Discover Protocol
+
+elseif cmd = "RouterDiscover" then
+     local rdpMode = true
+     while remodeling do
+          io.write("<RDP>")
+          read input
+          if input = "enable" then
+               RDP=true
+          elseif input = "MainNetwork" then
+               MNR=true
+          elseif input = "EndPoint" then
+               EPR=true
+          elseif input = "block" and input2 = "side"
+               --blocks sending updates and incoming updates from that side
+          elseif input = "exit" then
+               break
+          end
+     end
+end
