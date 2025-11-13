@@ -1,1 +1,3 @@
 Pastebin has been abandoned, I learned about wget, so I'm using Github only
+
+to get the updater file you can use 'wget https://raw.githubusercontent.com/ToasterOvenDev/CC-Tweaked-IP-Network/refs/heads/main/UtilityFiles/Updater.lua updater.lua'
