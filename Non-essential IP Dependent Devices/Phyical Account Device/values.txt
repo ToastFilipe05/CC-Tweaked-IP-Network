@@ -1,0 +1,24 @@
+{    
+
+    ["coin_copper"] = 0.01,
+    ["coinpile_copper"] = 0.09,
+    ["coinblock_copper"] = 0.36,
+    ["coin_iorn"] = 0.10,
+    ["coinpile_iron"] = 0.90,
+    ["coinblock_iron"] = 3.60,
+    ["coin_gold"] = 1.00,
+    ["coinpile_gold"] = 9.00,
+    ["coinblock_gold"] = 36.00,
+    ["coin_emerald"] = 10.00,
+    ["coinpile_emerald"] = 90.00,
+    ["coinblock_emerald"] = 360.00,
+    ["coin_diamond"] = 100.00,
+    ["coinpile_diamond"] = 900.00,
+    ["coinblock_diamond"] = 3600.00,
+    ["coin_netherite"] = 1000.00,
+    ["coinpile_netherite"] = 9000.00,
+    ["coinblock_netherite"] = 36000.00
+}
+
+
+
