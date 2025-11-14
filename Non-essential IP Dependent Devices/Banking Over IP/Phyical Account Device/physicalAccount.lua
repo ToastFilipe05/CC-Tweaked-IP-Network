@@ -1,5 +1,5 @@
-
-
+-- physicalAccount.lua
+-- Connects to Bank Server for each Account the bank has
 
 if type(multishell) == "table" and type(multishell.getCurrent) == "function" then
     local currentProgram = shell.getRunningProgram()
@@ -10,109 +10,66 @@ if type(multishell) == "table" and type(multishell.getCurrent) == "function" the
     end
 end
 
-local myAcctID = nil
-local bankIP = nil
-
-local values = {}
-
-local AcctIDFile = "/AID.txt" -- Location of the Account ID
-local bankIPFile = "/bankIP.txt" -- Location of the Bank Server IP
-local valuefile = "/values.txt" -- Location of values folder to pull from
-local logbankfile = "/bank.txt" -- Location of bank chest logs
-
+local myAcctID = nil -- Account ID for the physical device
+local bankIP = nil -- IP for bank server
+local bank = 1 -- Setup bank index
+local other = 2 -- Setup other chest index
+local firstboot = true -- For some startup text
 local content = {} -- Contents of Bank chest
 local DEBUG = false -- Debug variable
+local values = {} -- Values for item to currency translations
 
+local configFile = "/config.txt" -- Location of configs
+local config = { myAcctID=myAcctID, bankIP=bankIP,contents=content,DEBUG=DEBUG,bank=bank,other=other,values=values }
 
+-- Debug printing
 local function debugPrint(msg)
     if DEBUG then print("[DEBUG] " .. msg) end
 end
 
--- Error printing function
-local function err(msg)
-    term.setTextColor(colors.red)
-    print(msg)
-    term.setTextColor(colors.white)
-end
-
--- Automatically loads or creates Bank Server IP file and fills the Bank Server IP variable
-if not fs.exists(bankIPFile) then
-    local f = fs.open(bankIPFile,"w")
+-- Loads all config variables
+if not fs.exists(configFile) then
+    local f = fs.open(configFile, "w")
     f.writeLine("")
     f.close()
+    term.setTextColor(colors.green)
+    print(configFile.." created. Use CLI to set configs")
     term.setTextColor(colors.red)
-    print(bankIPFile.." created. Use CLI command 'set ip <ip>' to assign IP")
+    print("Set important values, bank IP and Account ID")
     term.setTextColor(colors.white)
-    bankIP = nil
 else
     local f = fs.open(bankIPFile,"r")
-    bankIP = f.readLine()
+    config = f.readLine()
     f.close()
-    if bankIP=="" then bankIP=nil end
-end
--- Saves the Bank Server IP
-local function saveBIP()
-    local f = fs.open(bankIPFile,"w")
-    f.writeLine(bankIP)
-    f.close()
-end
--- Automatically loads or creates Accoutnt ID file and fills the Account ID variable
-if not fs.exists(AcctIDFile) then
-    local f = fs.open(AcctIDFile,"w")
-    f.writeLine("")
-    f.close()
-    term.setTextColor(colors.red)
-    print(AcctIDFile.." created. Use CLI command 'set ip <ip>' to assign IP")
-    term.setTextColor(colors.white)
-    myAcctID = nil
-else
-    local f = fs.open(AcctIDFile,"r")
-    myAcctID = f.readLine()
-    f.close()
-    if myAcctID=="" then myAcctID=nil end
-end
--- Saves the Account ID
-local function saveID()
-    local f = fs.open(AcctIDFile,"w")
-    f.writeLine(myAcctID)
-    f.close()
-end
-
---  Load values from file
-local function loadValues()
-    values = {}
-    if fs.exists(valuefile) then   
-        local f = fs.open(valuefile, "r")
-        local dat = f.readAll()
-        f.close()
-        if dat and dat ~= "" then 
-            local ok, t = pcall(textutils.unserialise, dat)
-            if ok and type(t) == "table" then values = t end
-        end
+    if config=="" then
+        bankIP = nil
+        myAcctID = nil
+        content = {}
+        DEBUG = false
+        bank = 1
+        other = 2
     else
-        err("Values not set or failed to load cannot preform functions")
+        bankIP=config.bankIP or nil
+        myAcctID=config.myAcctID or nil
+        content=config.contents or {}
+        DEBUG=config.DEBUG or false
+        bank=config.bank or 1
+        other=config.other or 2
+        values=config.values or {}
     end
 end
-
---  Log current chest contents
-local function logList()
-    local f1 = fs.open(logbankfile, "w")
-    f1.writeLine(textutils.serialize(content))
-    f1.close()
-end
-logList() -- run log list on start to clear previous logs
--- Load logged chest contents
-local function loadLog()
-    content = {}
-    if fs.exists(logbankfile) and fs.exists(logc2file) then
-        local f1 = fs.open(logbankfile, "r")
-        local dat1 = f1.readAll()
-        f1.close()
-        if dat1 and dat1 ~= "" then
-            local ok, t = pcall(textutils.unserialize, dat1)
-            if ok and type(t) == "table" then content = t end
-        end
-    end
+-- Saves all the configs
+local function saveConfig()
+    config.bankIP = bankIP or nil
+    config.myAcctID = myAcctID or nil
+    config.contents = content or {}
+    config.DEBUG = DEBUG or false
+    config.bank = bank or 1
+    config.other = other or 2
+    config.values = values or {}
+    local f = fs.open(configFile,"w")
+    f.writeLine(textutils.serializeJSON(config))
+    f.close()
 end
 
 -- Wait for peripheral to be present
@@ -160,9 +117,6 @@ local function chestsFind()
     end
 end
 
-local bank = 1 -- Setup bank index
-local other = 2 -- Setup otherchest index
-local firstboot = true
 --Looks into the bank chest for items
 local function lookInBank()
     -- Wrap and load contents of bank chest
@@ -171,7 +125,7 @@ local function lookInBank()
     local chest1 = waitForPeripheral(chests[bank], 5) --Makes sure that the chests are still there
     local banklist = waitForList(chest1, chests[bank]) --Makes sure that the contents have loaded still
     if firstboot then
-        print("Found chests:", chests[bank], "and", chests[other])
+        print("Found chests:", chests[bank], "(bank) and", chests[other], " (other)")
         firstboot = false
     end
     for slot, item in pairs(banklist) do 
@@ -188,9 +142,6 @@ end
 chestsFind() -- Finds connected chests
 lookInBank() -- Returns a list for the items in the bank chest in content
 
--- Load item values
-loadValues()
-
 local bal = 0
 -- Calculate and print total value of chest contents
 local function addUp()
@@ -203,9 +154,7 @@ local function addUp()
     bal = total
     return total
 end
--- Initial total value calculation
-logList()
-
+-- Seperates digits
 local function sepDigits(str)
     local digits = {}
     local first6 = str:sub(#str-4)
@@ -216,14 +165,13 @@ local function sepDigits(str)
     table.insert(digits,tonumber(extra))
     return digits
 end
-
-
+-- Makes UID for sending packets
 local seq = 0
 local function makeUID()
     seq = seq + 1
     return tostring(seq).."-"..tostring(os.getComputerID())
 end
-
+-- Sends packets over the network
 local function sendPacket(payload)
     if not myAcctID then
         term.setTextColor(colors.yellow)
@@ -241,7 +189,7 @@ local function sendPacket(payload)
     modem.transmit(1, 1, packet)
     debugPrint("Sent packet to "..bankIP)
 end
-
+-- Repeater function for transaction handling
 local function repeater(items,item,digit)
     local flag = false
     if items[item] >= digit then
@@ -252,7 +200,7 @@ local function repeater(items,item,digit)
     end
     return items, flag
 end
-
+-- Checks for coin up then down for transaction handling
 local function nextUpDown(coin,list,coin2,numdown)
     local tf = false
     if list[coin]>=1 then
@@ -264,8 +212,8 @@ local function nextUpDown(coin,list,coin2,numdown)
     end
     return list,tf
 end
-
-local function transactionHandling(num)
+-- Testing
+local function transactionHandlingTest(num)
     local request = num--tonumber(payload.req_amount)
     addUp()
     if request >= bal then -- THIS IS NOT DONE TOASTEROVEN HOLY SHIT
@@ -496,12 +444,14 @@ local function CLI()
             end
         elseif cmd == "setAcct" then --> Sets account ID
             myAcctID = args[2]
-            saveID()
+            os.sleep(0.5)
+            saveConfig()
         elseif cmd == "setbankSvrIP" then --> Sets Bank Server IP
             bankIP = args[2]
-            saveBIP()
+            os.sleep(0.5)
+            saveConfig()
         elseif cmd == "test" then
-            transactionHandling(args[2])
+            transactionHandlingTest(args[2])
         elseif cmd == "constructed" then
             io.write("Are you sure? (y/n)")
             local yON = io.read()
@@ -526,7 +476,7 @@ local function CLI()
     end
 end
 
--- listener function for modem messages
+-- Listener function for modem messages
 local function listener()
     while true do
         local e, side, ch, reply, msg, dist = os.pullEvent("modem_message")
@@ -535,7 +485,7 @@ local function listener()
         end
     end
 end
-
+-- Ensures startup on boot of Computer
 local function ensureStartup()
     local startupContent = ""
     if fs.exists("startup") then
