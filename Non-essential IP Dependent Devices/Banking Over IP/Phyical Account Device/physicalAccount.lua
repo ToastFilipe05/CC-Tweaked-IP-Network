@@ -68,7 +68,7 @@ local function saveConfig()
     config.other = other or 2
     config.values = values or {}
     local f = fs.open(configFile,"w")
-    f.writeLine(textutils.serializeJSON(config))
+    f.writeLine(textutils.serialize(config))
     f.close()
 end
 
@@ -419,6 +419,7 @@ local function CLI()
             printCommands()
         elseif cmd == "list" then --> List contents
             lookInBank()
+            saveConfig()
             for iname in pairs(content) do
                 local itemValue = values[iname] or 0
                 local count = content[iname]
