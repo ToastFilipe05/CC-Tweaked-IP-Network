@@ -1,2 +1,6 @@
 Just install Client Installer to install everything else, I know how overwhelming
 it can be to see a bunch of files and not really know what they do
+
+command to install Client Installer
+
+wget run https://raw.githubusercontent.com/ToasterOvenDev/CC-Tweaked-IP-Network/refs/heads/main/WiredNetwork/Client%20GUI/ClientInstaller.lua clientInstaller.lua
