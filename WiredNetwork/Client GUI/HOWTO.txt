@@ -1,0 +1,2 @@
+Just install Client Installer to install everything else, I know how overwhelming
+it can be to see a bunch of files and not really know what they do

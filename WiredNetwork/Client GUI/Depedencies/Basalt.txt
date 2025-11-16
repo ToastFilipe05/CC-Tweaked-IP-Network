@@ -1,0 +1,2 @@
+You also need Basalt to use this, Client Installer installs it for you so no
+need to go out and manually install it yourself

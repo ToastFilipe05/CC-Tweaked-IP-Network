@@ -1,12 +1,12 @@
-local function update(filename, webpage)
-	if fs.exists(filename) then
-		fs.delete(filename)
+local function update(filename, webpage) -- Installs the files from github
+	if fs.exists(filename) then -- Checks if file provided exsists
+		fs.delete(filename) -- Deletes it if it does
 		print("Deleted old "..filename)
-	else
+	else -- If it doesn't exist it installs it
 		print(filename.."not found. Installing "..filename)
 	end
 
-	shell.run("wget "..webpage.." "..filename)
+	shell.run("wget "..webpage.." "..filename) -- Runs the install command using provided URL and the filename
 	print("Downloaded latest "..filename)
 end
 
@@ -25,34 +25,34 @@ local function cliLoop()
         local args = {}
         for word in line:gmatch("%S+") do table.insert(args, word) end
         local cmd = args[1]
-        if cmd=="router" then
+        if cmd=="router" then -- Installs router
        		update("router.lua","https://raw.githubusercontent.com/ToasterOvenDev/CC-Tweaked-IP-Network/refs/heads/main/WiredNetwork/Router.lua")
 			print("Routers can also be run with servers installed. Please update any server files on device.")
 			break
-        elseif cmd=="client" then
+        elseif cmd=="client" then -- Installs CLI version of client
        		update("client.lua", "https://raw.githubusercontent.com/ToasterOvenDev/CC-Tweaked-IP-Network/refs/heads/main/WiredNetwork/Client.lua")
 			break
-		elseif cmd=="wirelessClient" then
+		elseif cmd=="wirelessClient" then -- Installs Wireless Client
         	update("wirelessClient.lua","https://raw.githubusercontent.com/ToasterOvenDev/CC-Tweaked-IP-Network/refs/heads/main/WirelessNetwork/wirelessClient.lua")
 			break
-        elseif cmd=="switch" then
+        elseif cmd=="switch" then -- Installs wireless Client
             update("switch.lua","https://raw.githubusercontent.com/ToasterOvenDev/CC-Tweaked-IP-Network/refs/heads/main/WiredNetwork/switch.lua")
 			break
-        elseif cmd=="fileServer" then
+        elseif cmd=="fileServer" then -- Installs File Server
             update("fileServer.lua","https://raw.githubusercontent.com/ToasterOvenDev/CC-Tweaked-IP-Network/refs/heads/main/WiredNetwork/FileServer.lua")
 			break
-        elseif cmd=="hostServer" then
+        elseif cmd=="hostServer" then -- Installs Host Server
             update("hostServer.lua","https://raw.githubusercontent.com/ToasterOvenDev/CC-Tweaked-IP-Network/refs/heads/main/WiredNetwork/hostServer.lua")
 			break
-		elseif cmd=="cellTower" then
+		elseif cmd=="cellTower" then -- Installs Cell Tower
             update("cellTower.lua","https://raw.githubusercontent.com/ToasterOvenDev/CC-Tweaked-IP-Network/refs/heads/main/WirelessNetwork/cellTower.lua")
 			break
-        elseif cmd=="updater" then
+        elseif cmd=="updater" then -- Updates the Updater to latest version
             update("updater.lua","https://raw.githubusercontent.com/ToasterOvenDev/CC-Tweaked-IP-Network/refs/heads/main/UtilityFiles/Updater.lua")
 			break
-        elseif cmd=="quit" then
+        elseif cmd=="quit" then -- Aborts the installer
             break
-        else
+        else -- Prints a helper if the command isn't recongnized
            	print("Usage: router | client | switch | fileServer | hostServer | updater | cellTower | wirelessClient | quit") 
         end
     end
