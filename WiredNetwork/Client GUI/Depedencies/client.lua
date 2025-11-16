@@ -6,6 +6,7 @@
 -- Automatic multishell self-launch and host sync updates
 -- Multi-channel system support
 -- startup file automatically added
+-- This is the version that supports GUI and is NOT standalone find the standalone version on github main/WiredNetwork/Client.lua
 
 -- DEBUG MODE
 
