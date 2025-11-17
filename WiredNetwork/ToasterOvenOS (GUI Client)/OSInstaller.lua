@@ -1,4 +1,4 @@
--- clientInstaller.lua
+-- OSInstaller.lua
 -- Installs GUI version along with it's dependencies without using Basalt to be as lightweight as possible
 -- User can pick a package to install
 -- Barebones package  Only the client GUI and it's dependencies with NO addons (doesn't have full CLI funcionality)
@@ -34,11 +34,11 @@ local function printPicker()
     term.setCursorPos(1,1)
     print("Choose your package: | Barebones | Essentials | \n| Full |")
     term.setTextColor(colors.green)
-    print("Barebones package: Only the client GUI and it's dependencies with NO addons (doesn't have all the CLI's funcionality)")
+    print("Barebones package: Only the ToasterOvenOS and it's dependencies with NO addons (doesn't have all the CLI's funcionality)")
     term.setTextColor(colors.cyan)
-    print("Essentals package: Installs client GUI with all the CLI's functionality")
+    print("Essentals package: Installs ToasterOvenOS with all the CLI's functionality")
     term.setTextColor(colors.blue)
-    print("Full package: Installs all Modules for GUI")
+    print("Full package: Installs all Modules for ToasterOvenOS")
     term.setTextColor(colors.white)
 end
 
