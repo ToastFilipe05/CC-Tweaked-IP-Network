@@ -1,4 +1,4 @@
--- clientGUI.lua
+-- toasterOvenOS.lua
 
 package.path = package.path .. ";./Dependencies/?.lua"
 
