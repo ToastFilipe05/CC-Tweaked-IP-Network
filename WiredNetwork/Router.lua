@@ -44,18 +44,18 @@ local DEFAULT_TTL = 8
 local HELLO_INTERVAL = 60
 local CLI_PASSWORD = "Admin"
 local ROUTING_FILE = "routing_table.txt"
-local IP_FILE = "ip.txt"
+local BNP_FILE = "BNP.txt"
 local PRIVATE_CHANNEL = os.getComputerID()
 local knownChannels = {}
 
 -- STATE
 local interfaces = {}
-local hosts = {}         -- host ip -> side (learned via HELLO_REPLY)
+local hosts = {}         -- host BNP -> side (learned via HELLO_REPLY)
 local lastSeen = {}
 local seen = {}
 local routingTable = {}
 local defaultRoute = nil
-local routerIP
+local routerBNP
 local terminated = false
 
 -- UTILITIES
@@ -65,15 +65,15 @@ local function makeUID()
     return tostring(seq).."-"..tostring(os.getComputerID())
 end
 
-local function splitIP(ip)
-    if not ip then return nil,nil,nil end
-    local a,b,c = ip:match("(%d+)%.(%d+)%.(%d+)")
+local function splitBNP(BNP)
+    if not BNP then return nil,nil,nil end
+    local a,b,c = BNP:match("(%d+)%.(%d+)%.(%d+)")
     return tonumber(a), tonumber(b), tonumber(c)
 end
 
-local function matchSubnet(ip, subnet)
-    local a1,b1,c1 = splitIP(ip)
-    local a2,b2,c2 = splitIP(subnet)
+local function matchSubnet(BNP, subnet)
+    local a1,b1,c1 = splitBNP(BNP)
+    local a2,b2,c2 = splitBNP(subnet)
     if not a1 or not a2 then return false end
     return a1==a2 and b1==b2 and c1==c2
 end
@@ -106,23 +106,23 @@ local function loadRoutingTable()
     end
 end
 
--- LOAD OR CREATE IP
-if not fs.exists(IP_FILE) then
-    routerIP = "10.10.10."..os.getComputerID()
-    local f = fs.open(IP_FILE,"w")
-    f.writeLine(routerIP)
+-- LOAD OR CREATE BNP
+if not fs.exists(BNP_FILE) then
+    routerBNP = "10.10.10."..os.getComputerID()
+    local f = fs.open(BNP_FILE,"w")
+    f.writeLine(routerBNP)
     f.close()
-    logInfo("Created "..IP_FILE.." with default IP: "..routerIP)
+    logInfo("Created "..BNP_FILE.." with default BNP: "..routerBNP)
 else
-    local f = fs.open(IP_FILE,"r")
-    routerIP = f.readLine()
+    local f = fs.open(BNP_FILE,"r")
+    routerBNP = f.readLine()
     f.close()
-    logInfo("Loaded router IP from "..IP_FILE..": "..routerIP)
+    logInfo("Loaded router BNP from "..BNP_FILE..": "..routerBNP)
 end
 
-local function updateIPFile()
-    local f = fs.open(IP_FILE,"w")
-    f.writeLine(routerIP)
+local function updateBNPFile()
+    local f = fs.open(BNP_FILE,"w")
+    f.writeLine(routerBNP)
     f.close()
 end
 
@@ -157,7 +157,7 @@ local function switchReply(side, packet)
     local payload = packet.payload
      -- Only respond if this is a switch hello from a switch
     if not payload.switch then return end
-     -- Respond to switch with our IP and private channel
+     -- Respond to switch with our BNP and private channel
     local response = {
         type = "S_H",
         switch = false, -- router, not a switch
@@ -165,30 +165,30 @@ local function switchReply(side, packet)
     }
     local pckt = {
    		uid = makeUID(),
-        src = routerIP,
+        src = routerBNP,
         dst = packet.src,
         ttl = 8,
         payload = response
     }
     -- Send back to the switch using the port we received from
     interfaces[side].transmit(payload.private_channel or 1, PRIVATE_CHANNEL, pckt)
-    debugPrint("Responded to S_H from switch " .. tostring(packet.src) .. " with IP " .. routerIP)
+    debugPrint("Responded to S_H from switch " .. tostring(packet.src) .. " with BNP " .. routerBNP)
 end
 
 -- FORWARDING & PACKET HANDLING
-local function learnHostRoute(srcIP, incomingSide)
-    if not srcIP then return end
-    if hosts[srcIP] ~= incomingSide then
-        hosts[srcIP] = incomingSide
-        lastSeen[srcIP] = os.clock()
-        local subnet = srcIP:match("^(%d+%.%d+%.%d+)")
+local function learnHostRoute(srcBNP, incomingSide)
+    if not srcBNP then return end
+    if hosts[srcBNP] ~= incomingSide then
+        hosts[srcBNP] = incomingSide
+        lastSeen[srcBNP] = os.clock()
+        local subnet = srcBNP:match("^(%d+%.%d+%.%d+)")
         if subnet then
             routingTable[subnet] = incomingSide
         end
         saveRoutingTable()
-        logInfo("Learned host "..srcIP.." via "..incomingSide.." (added route "..(subnet or "nil").." -> "..incomingSide..")")
+        logInfo("Learned host "..srcBNP.." via "..incomingSide.." (added route "..(subnet or "nil").." -> "..incomingSide..")")
     else
-        lastSeen[srcIP] = os.clock()
+        lastSeen[srcBNP] = os.clock()
     end
 end
 
@@ -236,7 +236,7 @@ local function forwardPacket(packet, incomingSide)
         	}
         	local reply = {
          	       uid = makeUID(),
-            	    src = routerIP,
+            	    src = routerBNP,
                 	dst = packet.src,
                		ttl = DEFAULT_TTL,
                 	payload = replyPayload
@@ -247,8 +247,8 @@ local function forwardPacket(packet, incomingSide)
         	return
 
     	elseif payload.type == "PING" then
-        	if packet.dst == routerIP then
-           		local reply = { uid = makeUID(), src = routerIP, dst = packet.src, ttl = DEFAULT_TTL, payload = { type = "PING_REPLY",				  message = "pong" } }
+        	if packet.dst == routerBNP then
+           		local reply = { uid = makeUID(), src = routerBNP, dst = packet.src, ttl = DEFAULT_TTL, payload = { type = "PING_REPLY",				  message = "pong" } }
             	interfaces[incomingSide].transmit(dstCh,PRIVATE_CHANNEL,reply)
             	logInfo("Replied to PING from "..packet.src)
      		else
@@ -265,7 +265,7 @@ end
     end
 
     -- If packet is destined to this router, process locally
-    if packet.dst == routerIP then
+    if packet.dst == routerBNP then
         logInfo(("Packet for router: %s"):format(textutils.serialize(packet.payload)))
         return
     end
@@ -307,7 +307,7 @@ local function periodicHelloCheck()
     while not terminated do
         local packet = {
     		uid = makeUID(),
-    		src = routerIP,
+    		src = routerBNP,
     		dst = "0",
     		ttl = DEFAULT_TTL,
     		payload = {
@@ -339,7 +339,7 @@ local function printHelp()
   show routes
   show hosts
   show channels
-  ip set <ip>
+  BNP set <BNP>
   add route <subnet> <side>
   del route <subnet>
   set defaultroute <side>
@@ -378,12 +378,12 @@ local function cli()
                 elseif cmd=="show" then
                     if arg1=="routes" then for s,t in pairs(routingTable) do print(s.." -> "..t) end
                     elseif arg1=="hosts" then for h,s in pairs(hosts) do print(h.." -> "..s) end
-                    elseif arg1=="channels" then for ip,ch in pairs(knownChannels) do print(ip.." -> "..ch) end
+                    elseif arg1=="channels" then for BNP,ch in pairs(knownChannels) do print(BNP.." -> "..ch) end
                     else print("Usage: show routes | show host | show channels") end
-                elseif cmd=="ip" and arg1=="set" and arg2~="" then
-                    routerIP = arg2
-                    updateIPFile()
-                    logInfo("Router IP updated to "..routerIP)
+                elseif cmd=="BNP" and arg1=="set" and arg2~="" then
+                    routerBNP = arg2
+                    updateBNPFile()
+                    logInfo("Router BNP updated to "..routerBNP)
                 elseif cmd=="add" and arg1=="route" and arg2~="" and arg3~="" then
                     if not interfaces[arg3] then print("Invalid side: "..arg3)
                     else routingTable[arg2] = arg3; logInfo("Added route "..arg2.." -> "..arg3); saveRoutingTable() end
