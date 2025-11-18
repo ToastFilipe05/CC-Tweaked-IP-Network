@@ -537,6 +537,7 @@ local function crashDebug(name, fn)
     local ok, err = pcall(fn)
     if not ok then
         printError("[CRASH in " .. name .. "] " .. tostring(err))
+        os.sleep(30)
     end
 end
 
@@ -546,6 +547,3 @@ parallel.waitForAny(
     function() crashDebug("cliLoop", cliLoop) end,
     function() crashDebug("cleanupChannels", cleanupChannels) end
 )
-
-printError("[CLIENT STOPPED] parallel.waitForAny returned!")
-os.sleep(60)
