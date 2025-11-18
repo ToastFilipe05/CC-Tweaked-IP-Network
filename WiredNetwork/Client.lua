@@ -354,7 +354,6 @@ local function printCommands() -- prints commands with different colors
         "list hosts",
         "sync hosts",
         "BNP",
-        "run <program> [args]",
         "exit",
         "debugmode <true|false>"
     }
