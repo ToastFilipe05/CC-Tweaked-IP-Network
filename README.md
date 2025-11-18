@@ -4,7 +4,7 @@ Block-Net Protocol or BNP is a protocol made for CC: Tweaked that loosely follow
 
 
 The wiki explains how to use the entire system including set-up and features of each device
-[Wiki](https://github.com/ToasterOvenDev/CC-Tweaked-IP-Network/wiki#welcome-to-the-cc-tweaked-ip-network-wiki)
+[Wiki](https://github.com/ToasterOvenDev/Block-Net-Protocol-IP-Network-for-CC-Tweaked/wiki#welcome-to-the-Block-Net-Protocol-Wiki)
 
 For more information on CC: Tweaked click [here](https://tweaked.cc) and download [here](https://modrinth.com/mod/cc-tweaked)
 
@@ -14,7 +14,7 @@ Basalt has a beta 2.0 version [here](https://github.com/Pyroxenium/Basalt2)
 
 # Support
 
-If you have any questions try checking the [wiki](https://github.com/ToasterOvenDev/CC-Tweaked-IP-Network/wiki#welcome-to-the-cc-tweaked-ip-network-wiki)
+If you have any questions try checking the [wiki](https://github.com/ToasterOvenDev/Block-Net-Protocol-IP-Network-for-CC-Tweaked/wiki#welcome-to-the-Block-Net-Protocol-Wiki)
 
 if the problem persists create an Issue on [Github](https://github.com/ToasterOvenDev/CC-Tweaked-IP-Network/issues)
 
