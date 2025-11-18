@@ -185,6 +185,7 @@ end
 
 local function clearRoutingTable()
     routing_table = {}
+	last_hello = {}
     saveRoutingTable()
     log("Routing table cleared.")
 end
