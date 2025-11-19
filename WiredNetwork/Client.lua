@@ -387,7 +387,7 @@ local function cliLoop() --Command Line Interface loop
         elseif cmd == "sync" and args[2] == "hosts" then
             requestFullHosts()
         elseif cmd == "getfile" and args[2] and args[3] and args[4] then
-            sendACK(args[2], args[4])
+            sendACK(args[2], args[4] or "")
             requestedFile = args[3]
         elseif cmd == "BNP" then
             print("Current BNP: "..tostring(myBNP))

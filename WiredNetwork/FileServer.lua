@@ -91,8 +91,10 @@ if not fs.exists(PASSWORD_FILE) then
     local f = fs.open(PASSWORD_FILE,"w")
     f.writeLine("")
     f.close()
+    term.setTextColor(colors.green)
+    print(PASSWORD_FILE.." created. Use CLI command 'set password <password>' to assign a server password.")
     term.setTextColor(colors.red)
-    print(PASSWORD_FILE.." created. Use CLI command 'set password <password>' to assign a server password. IF NOT SET FILE SERVER WILL NOT WORK; TO MAKE PUBLIC RESTART DEVICE AND DO NOT SET PASSWORD")
+    print("IF PASSWORD NOT SET FILE SERVER WILL NOT WORK; TO MAKE PUBLIC RESTART DEVICE AND DO NOT SET PASSWORD!!")
     term.setTextColor(colors.white)
     SERVER_PASSWORD = nil
 else

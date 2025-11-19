@@ -128,7 +128,7 @@ loadServerBNP()
 
 -- PACKET UTILITIES
 local seq = 0
-local function makeUID()
+function C.makeUID()
 	seq = seq+1
     return tostring(seq).."-"..tostring(os.getComputerID())
 end
@@ -138,7 +138,7 @@ local function resolveAddress(input)
     return input
 end
 
-local function sendPacket(dst, payload)
+function C.sendPacket(dst, payload)
     if not myBNP then
         term.setTextColor(colors.yellow)
         print("Set your BNP first with 'set BNP <BNP>' before sending packets.")
@@ -381,7 +381,7 @@ function C.cliLoop() --Command Line Interface loop
         elseif cmd == "sync" and args[2] == "hosts" then
             C.requestFullHosts()
         elseif cmd == "getfile" and args[2] and args[3] and args[4] then
-            C.sendACK(args[2], args[4])
+            C.sendACK(args[2], args[4] or "")
             requestedFile = args[3]
         elseif cmd == "BNP" then
             print("Current BNP: "..tostring(myBNP))
@@ -456,6 +456,14 @@ end
 -- Getter for router channel
 function C.getRouterChannel()
     return routerChannel
+end
+
+function C.setFile(file)
+    requestedFile = file
+end
+
+function C.getFile()
+    return requestedFile
 end
 
 return C

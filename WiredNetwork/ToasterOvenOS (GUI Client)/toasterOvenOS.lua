@@ -57,6 +57,7 @@ local input = main:addInput()
     :setSize(25,1)
     :setForeground(colors.white)
     :setDefaultText("Enter Password here...")
+    :setInputType("password")
 
 local label = main:addLabel()
     :setPosition(2,4)
@@ -252,7 +253,7 @@ local setErrLabel = settings:addLabel():setPosition(2,10):setForeground(colors.r
 local inputmyBNP = settings:addInput():setDefaultText(setBNP):setPosition(6,2):setInputLimit(23):setSize(24,1) -- input for BNP
 local inputDNSBNP = settings:addInput():setDefaultText(setDNS):setPosition(8,4):setInputLimit(23):setSize(24,1) -- input for DNS BNP
 local inputUsername = settings:addInput():setDefaultText(username):setPosition(12,6):setInputLimit(12):setSize(13,1) -- 12 characters max input for username
-local inputPass = settings:addInput():setDefaultText(("*"):rep(#password)):setPosition(12,8):setInputLimit(24):setSize(25,1) -- input for password
+local inputPass = settings:addInput():setDefaultText(("*"):rep(#password)):setPosition(12,8):setInputLimit(24):setSize(25,1):setInputType("password") -- input for password
 -- Button to submit the BNP in input
 settings:addButton():setText("Change BNP"):setPosition(36,2):setSize(10,1):setForeground(colors.white):setBackground(colors.black):onClick(function() local inputBNP = inputmyBNP:getValue() if not inputBNP then client.setBNP(nil) setErrLabel:setText(BNPError .. "BNP currently nil") elseif inputBNP:match("^%d+%.%d+%.%d+%.%d+$") then client.setBNP(inputBNP) elseif not inputBNP:match("^%d+%.%d+%.%d+%.%d+$") then setErrLabel:setText(BNPError) end end)
 -- Button to submit the DNS BNP in input
