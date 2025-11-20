@@ -6,6 +6,8 @@ Block-Net Protocol or BNP is a protocol made for CC: Tweaked that loosely follow
 The wiki explains how to use the entire system including set-up and features of each device
 [Wiki](https://github.com/ToasterOvenDev/Block-Net-Protocol-IP-Network-for-CC-Tweaked/wiki#welcome-to-the-Block-Net-Protocol-Wiki)
 
+Block-Net Protocol was made on CC:Tweaked version 1.116.2 but should work on almost any version of Computer Craft that runs Basalt or has access to syntax used in CLI versions
+
 For more information on CC: Tweaked click [here](https://tweaked.cc) and download [here](https://modrinth.com/mod/cc-tweaked)
 
 Basalt version 1.7 is used to make the GUI for ToasterOvenOS and can be found [here](https://github.com/Pyroxenium/Basalt)
