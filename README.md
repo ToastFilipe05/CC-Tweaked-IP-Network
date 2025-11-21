@@ -8,6 +8,7 @@ Block-Net Protocol or BNP is a protocol made for CC: Tweaked that loosely follow
 ### To get ToasterOvenOS use this command:
 "wget https://raw.githubusercontent.com/ToasterOvenDev/Block-Net-Protocol-IP-Network-for-CC-Tweaked/refs/heads/Stable/WiredNetwork/ToasterOvenOS%20(GUI%20Client)/OSInstaller.lua oSInstaller.lua"
 
+### Resources
 
 The wiki explains how to use the entire system including set-up and features of each device
 [Wiki](https://github.com/ToasterOvenDev/Block-Net-Protocol-IP-Network-for-CC-Tweaked/wiki#welcome-to-the-Block-Net-Protocol-Wiki)
