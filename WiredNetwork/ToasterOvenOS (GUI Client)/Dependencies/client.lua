@@ -380,7 +380,7 @@ function C.cliLoop() --Command Line Interface loop
             end
         elseif cmd == "sync" and args[2] == "hosts" then
             C.requestFullHosts()
-        elseif cmd == "getfile" and args[2] and args[3] and args[4] then
+        elseif cmd == "getfile" and args[2] and args[3] then
             C.sendACK(args[2], args[4] or "")
             requestedFile = args[3]
         elseif cmd == "BNP" then
@@ -435,7 +435,7 @@ end -- Makes sure that it's hosts.txt is updated fully on boot
 --Getters and Setters
 -- Getter for myBNP
 function C.getBNP()
-    return myBNP
+    return myBNP or ""
 end
 -- Setter for myBNP
 function C.setBNP(BNP)
@@ -444,11 +444,11 @@ function C.setBNP(BNP)
 end
 -- Getter for Hosts
 function C.getHosts()
-    return hosts
+    return hosts or {}
 end
 -- Getter for Host Server BNP
 function C.getHostSvrBNP()
-    return hostServerBNP
+    return hostServerBNP or ""
 end
 -- Setter for Host Server BNP
 function C.setHostSvrBNP(BNP)
@@ -457,7 +457,7 @@ function C.setHostSvrBNP(BNP)
 end
 -- Getter for router channel
 function C.getRouterChannel()
-    return routerChannel
+    return routerChannel or 1
 end
 
 function C.setFile(file)
