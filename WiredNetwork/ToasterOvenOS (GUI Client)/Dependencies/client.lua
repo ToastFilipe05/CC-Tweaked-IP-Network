@@ -396,6 +396,8 @@ function C.cliLoop() --Command Line Interface loop
             	print("Error: Unrecognized argument | useage: debugmode true || debugmode false")
             	term.setTextColor(colors.white)
             end
+		elseif cmd == "clear" or cmd == "clr" then
+			term.clear()
         else
             term.setTextColor(colors.red)
             print("Error: Unrecognized command")
